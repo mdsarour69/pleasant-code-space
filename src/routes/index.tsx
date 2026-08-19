@@ -3,7 +3,7 @@ import { Navbar } from "@/components/layout/Navbar";
 import { Hero } from "@/components/home/Hero";
 import { TrialSection } from "@/components/home/TrialSection";
 import { PricingSection } from "@/components/home/PricingSection";
-import { ContactSection, Footer, FloatingSupport } from "@/components/home/ContactSection";
+import { ContactSection, Footer, FloatingSupport } from "@/components/home/ContactFooter";
 import { Suspense } from "react";
 
 export const Route = createFileRoute("/")({
