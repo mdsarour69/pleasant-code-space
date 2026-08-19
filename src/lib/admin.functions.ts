@@ -1,0 +1,165 @@
+import { createServerFn } from "@tanstack/react-start";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { z } from "zod";
+
+const idSchema = z.object({ id: z.string().uuid() });
+
+export const getMyRole = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { data, error } = await context.supabase.rpc("has_role", {
+      _user_id: context.userId,
+      _role: "admin",
+    });
+    if (error) throw error;
+    return { isAdmin: Boolean(data) };
+  });
+
+export const adminListAll = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const supabase = context.supabase;
+    const [services, packages, orders, settings] = await Promise.all([
+      supabase.from("services").select("*").order("sort_order"),
+      supabase.from("packages").select("*").order("sort_order"),
+      supabase.from("orders").select("*").order("created_at", { ascending: false }),
+      supabase.from("settings").select("*").order("key"),
+    ]);
+    const err = services.error ?? packages.error ?? orders.error ?? settings.error;
+    if (err) throw err;
+    return {
+      services: services.data ?? [],
+      packages: packages.data ?? [],
+      orders: orders.data ?? [],
+      settings: settings.data ?? [],
+    };
+  });
+
+const serviceSchema = z.object({
+  id: z.string().uuid().optional(),
+  icon: z.string().max(16).default(""),
+  gradient: z.string().max(32).default("pink"),
+  active: z.boolean().default(true),
+  sort_order: z.number().int().min(0).max(999).default(0),
+  title: z.string().min(1).max(200),
+  description: z.string().max(1000).default(""),
+  title_en: z.string().max(200).default(""),
+  title_ar: z.string().max(200).default(""),
+  title_fr: z.string().max(200).default(""),
+  title_pt: z.string().max(200).default(""),
+  description_en: z.string().max(1000).default(""),
+  description_ar: z.string().max(1000).default(""),
+  description_fr: z.string().max(1000).default(""),
+  description_pt: z.string().max(1000).default(""),
+});
+
+export const saveService = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data) => serviceSchema.parse(data))
+  .handler(async ({ data, context }) => {
+    const { id, ...values } = data;
+    const { error } = id
+      ? await context.supabase.from("services").update(values).eq("id", id)
+      : await context.supabase.from("services").insert([values]);
+    if (error) throw error;
+    return { success: true };
+  });
+
+export const deleteService = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data) => idSchema.parse(data))
+  .handler(async ({ data, context }) => {
+    const { error } = await context.supabase.from("services").delete().eq("id", data.id);
+    if (error) throw error;
+    return { success: true };
+  });
+
+const packageSchema = z.object({
+  id: z.string().uuid().optional(),
+  price: z.number().int().min(0).max(10_000_000),
+  old_price: z.number().int().min(0).max(10_000_000).default(0),
+  active: z.boolean().default(true),
+  sort_order: z.number().int().min(0).max(999).default(0),
+  name: z.string().min(1).max(200),
+  duration: z.string().max(200).default(""),
+  badge: z.string().max(100).default(""),
+  type: z.string().max(100).default(""),
+  description: z.string().max(1000).default(""),
+  name_en: z.string().max(200).default(""),
+  name_ar: z.string().max(200).default(""),
+  name_fr: z.string().max(200).default(""),
+  name_pt: z.string().max(200).default(""),
+  duration_en: z.string().max(200).default(""),
+  duration_ar: z.string().max(200).default(""),
+  duration_fr: z.string().max(200).default(""),
+  duration_pt: z.string().max(200).default(""),
+  badge_en: z.string().max(100).default(""),
+  badge_ar: z.string().max(100).default(""),
+  badge_fr: z.string().max(100).default(""),
+  badge_pt: z.string().max(100).default(""),
+  type_en: z.string().max(100).default(""),
+  type_ar: z.string().max(100).default(""),
+  type_fr: z.string().max(100).default(""),
+  type_pt: z.string().max(100).default(""),
+  description_en: z.string().max(1000).default(""),
+  description_ar: z.string().max(1000).default(""),
+  description_fr: z.string().max(1000).default(""),
+  description_pt: z.string().max(1000).default(""),
+});
+
+export const savePackage = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data) => packageSchema.parse(data))
+  .handler(async ({ data, context }) => {
+    const { id, ...values } = data;
+    const { error } = id
+      ? await context.supabase.from("packages").update(values).eq("id", id)
+      : await context.supabase.from("packages").insert([values]);
+    if (error) throw error;
+    return { success: true };
+  });
+
+export const deletePackage = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data) => idSchema.parse(data))
+  .handler(async ({ data, context }) => {
+    const { error } = await context.supabase.from("packages").delete().eq("id", data.id);
+    if (error) throw error;
+    return { success: true };
+  });
+
+export const updateOrderStatus = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data) =>
+    z
+      .object({ id: z.string().uuid(), status: z.enum(["pending", "confirmed", "done", "cancelled"]) })
+      .parse(data),
+  )
+  .handler(async ({ data, context }) => {
+    const { error } = await context.supabase
+      .from("orders")
+      .update({ status: data.status })
+      .eq("id", data.id);
+    if (error) throw error;
+    return { success: true };
+  });
+
+export const deleteOrder = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data) => idSchema.parse(data))
+  .handler(async ({ data, context }) => {
+    const { error } = await context.supabase.from("orders").delete().eq("id", data.id);
+    if (error) throw error;
+    return { success: true };
+  });
+
+export const saveSetting = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data) =>
+    z.object({ key: z.string().min(1).max(120), value: z.string().max(2000) }).parse(data),
+  )
+  .handler(async ({ data, context }) => {
+    const { error } = await context.supabase.from("settings").upsert(data, { onConflict: "key" });
+    if (error) throw error;
+    return { success: true };
+  });
