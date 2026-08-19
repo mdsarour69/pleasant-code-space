@@ -14,7 +14,218 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      orders: {
+        Row: {
+          created_at: string | null
+          customer_name: string
+          id: string
+          note: string | null
+          package_id: string | null
+          phone: string
+          status: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          customer_name: string
+          id?: string
+          note?: string | null
+          package_id?: string | null
+          phone: string
+          status?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          customer_name?: string
+          id?: string
+          note?: string | null
+          package_id?: string | null
+          phone?: string
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "orders_package_id_fkey"
+            columns: ["package_id"]
+            isOneToOne: false
+            referencedRelation: "packages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      packages: {
+        Row: {
+          active: boolean | null
+          badge: string | null
+          badge_ar: string | null
+          badge_en: string | null
+          badge_fr: string | null
+          badge_pt: string | null
+          created_at: string | null
+          description: string | null
+          description_ar: string | null
+          description_en: string | null
+          description_fr: string | null
+          description_pt: string | null
+          duration: string | null
+          duration_ar: string | null
+          duration_en: string | null
+          duration_fr: string | null
+          duration_pt: string | null
+          id: string
+          name: string
+          name_ar: string | null
+          name_en: string | null
+          name_fr: string | null
+          name_pt: string | null
+          old_price: number | null
+          price: number
+          sort_order: number | null
+          type: string | null
+          type_ar: string | null
+          type_en: string | null
+          type_fr: string | null
+          type_pt: string | null
+        }
+        Insert: {
+          active?: boolean | null
+          badge?: string | null
+          badge_ar?: string | null
+          badge_en?: string | null
+          badge_fr?: string | null
+          badge_pt?: string | null
+          created_at?: string | null
+          description?: string | null
+          description_ar?: string | null
+          description_en?: string | null
+          description_fr?: string | null
+          description_pt?: string | null
+          duration?: string | null
+          duration_ar?: string | null
+          duration_en?: string | null
+          duration_fr?: string | null
+          duration_pt?: string | null
+          id?: string
+          name: string
+          name_ar?: string | null
+          name_en?: string | null
+          name_fr?: string | null
+          name_pt?: string | null
+          old_price?: number | null
+          price: number
+          sort_order?: number | null
+          type?: string | null
+          type_ar?: string | null
+          type_en?: string | null
+          type_fr?: string | null
+          type_pt?: string | null
+        }
+        Update: {
+          active?: boolean | null
+          badge?: string | null
+          badge_ar?: string | null
+          badge_en?: string | null
+          badge_fr?: string | null
+          badge_pt?: string | null
+          created_at?: string | null
+          description?: string | null
+          description_ar?: string | null
+          description_en?: string | null
+          description_fr?: string | null
+          description_pt?: string | null
+          duration?: string | null
+          duration_ar?: string | null
+          duration_en?: string | null
+          duration_fr?: string | null
+          duration_pt?: string | null
+          id?: string
+          name?: string
+          name_ar?: string | null
+          name_en?: string | null
+          name_fr?: string | null
+          name_pt?: string | null
+          old_price?: number | null
+          price?: number
+          sort_order?: number | null
+          type?: string | null
+          type_ar?: string | null
+          type_en?: string | null
+          type_fr?: string | null
+          type_pt?: string | null
+        }
+        Relationships: []
+      }
+      services: {
+        Row: {
+          active: boolean | null
+          created_at: string | null
+          description: string | null
+          description_ar: string | null
+          description_en: string | null
+          description_fr: string | null
+          description_pt: string | null
+          gradient: string | null
+          icon: string | null
+          id: string
+          sort_order: number | null
+          title: string
+          title_ar: string | null
+          title_en: string | null
+          title_fr: string | null
+          title_pt: string | null
+        }
+        Insert: {
+          active?: boolean | null
+          created_at?: string | null
+          description?: string | null
+          description_ar?: string | null
+          description_en?: string | null
+          description_fr?: string | null
+          description_pt?: string | null
+          gradient?: string | null
+          icon?: string | null
+          id?: string
+          sort_order?: number | null
+          title: string
+          title_ar?: string | null
+          title_en?: string | null
+          title_fr?: string | null
+          title_pt?: string | null
+        }
+        Update: {
+          active?: boolean | null
+          created_at?: string | null
+          description?: string | null
+          description_ar?: string | null
+          description_en?: string | null
+          description_fr?: string | null
+          description_pt?: string | null
+          gradient?: string | null
+          icon?: string | null
+          id?: string
+          sort_order?: number | null
+          title?: string
+          title_ar?: string | null
+          title_en?: string | null
+          title_fr?: string | null
+          title_pt?: string | null
+        }
+        Relationships: []
+      }
+      settings: {
+        Row: {
+          key: string
+          value: string
+        }
+        Insert: {
+          key: string
+          value: string
+        }
+        Update: {
+          key?: string
+          value?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
