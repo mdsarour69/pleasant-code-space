@@ -6,10 +6,11 @@ import { updateOrderStatus, deleteOrder } from "@/lib/admin.functions";
 import type { Tables } from "@/integrations/supabase/types";
 
 type Order = Tables<"orders">;
+type Package = Tables<"packages">;
 
 const STATUSES = ["pending", "confirmed", "done", "cancelled"] as const;
 
-export function OrdersTab({ orders }: { orders: Order[] }) {
+export function OrdersTab({ orders, packages }: { orders: Order[]; packages: Package[] }) {
   const qc = useQueryClient();
   const setStatus = useServerFn(updateOrderStatus);
   const remove = useServerFn(deleteOrder);
@@ -36,6 +37,9 @@ export function OrdersTab({ orders }: { orders: Order[] }) {
     return <p className="text-sm text-[#9b93ad]">No orders yet.</p>;
   }
 
+  const packageName = (id: string | null) =>
+    packages.find((p) => p.id === id)?.name ?? "—";
+
   return (
     <div className="space-y-3">
       <h2 className="text-lg font-semibold text-white">Orders ({orders.length})</h2>
@@ -44,10 +48,9 @@ export function OrdersTab({ orders }: { orders: Order[] }) {
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div className="text-sm">
               <p className="font-medium text-white">{o.customer_name}</p>
-              <p className="text-[#9b93ad]">{o.customer_phone}</p>
-              {o.customer_email ? <p className="text-[#9b93ad]">{o.customer_email}</p> : null}
-              <p className="mt-1 text-[#cfc9db]">{o.package_name}</p>
-              {o.notes ? <p className="mt-1 text-xs text-[#6f6880]">{o.notes}</p> : null}
+              <p className="text-[#9b93ad]">{o.phone}</p>
+              <p className="mt-1 text-[#cfc9db]">{packageName(o.package_id)}</p>
+              {o.note ? <p className="mt-1 text-xs text-[#6f6880]">{o.note}</p> : null}
               <p className="mt-1 text-[11px] text-[#6f6880]">
                 {o.created_at ? new Date(o.created_at).toLocaleString() : ""}
               </p>
