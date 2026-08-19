@@ -1,0 +1,97 @@
+import { supabase } from "@/integrations/supabase/client";
+import { createServerFn } from "@tanstack/react-start";
+import { z } from "zod";
+
+export const getTranslations = createServerFn({ method: "GET" })
+  .inputValidator((data) => z.object({ lang: z.string() }).parse(data))
+  .handler(async ({ data: { lang } }) => {
+    const { data, error } = await supabase
+      .from("settings")
+      .select("key, value")
+      .or(`key.like.${lang}.%,key.like.bn.%`);
+
+    if (error) throw error;
+
+    // Create a map of translations, with the requested language overriding Bengali defaults
+    const translations: Record<string, string> = {};
+    
+    // First pass: add all Bengali defaults (without the "bn." prefix)
+    data.filter(item => item.key.startsWith('bn.'))
+      .forEach(item => {
+        const key = item.key.substring(3);
+        translations[key] = item.value;
+      });
+
+    // Second pass: override with requested language (without the prefix)
+    data.filter(item => item.key.startsWith(`${lang}.`))
+      .forEach(item => {
+        const key = item.key.substring(lang.length + 1);
+        translations[key] = item.value;
+      });
+
+    // Add legacy keys directly
+    data.filter(item => !item.key.includes('.'))
+      .forEach(item => {
+        translations[item.key] = item.value;
+      });
+
+    return translations;
+  });
+
+export const getServices = createServerFn({ method: "GET" })
+  .inputValidator((data) => z.object({ lang: z.string() }).parse(data))
+  .handler(async ({ data: { lang } }) => {
+    const { data, error } = await supabase
+      .from("services")
+      .select("*")
+      .eq("active", true)
+      .order("sort_order");
+
+    if (error) throw error;
+
+    return data.map(service => ({
+      ...service,
+      title: lang === 'bn' ? service.title : (service[`title_${lang}` as keyof typeof service] || service.title),
+      description: lang === 'bn' ? service.description : (service[`description_${lang}` as keyof typeof service] || service.description),
+    }));
+  });
+
+export const getPackages = createServerFn({ method: "GET" })
+  .inputValidator((data) => z.object({ lang: z.string() }).parse(data))
+  .handler(async ({ data: { lang } }) => {
+    const { data, error } = await supabase
+      .from("packages")
+      .select("*")
+      .eq("active", true)
+      .order("sort_order");
+
+    if (error) throw error;
+
+    return data.map(pkg => ({
+      ...pkg,
+      name: lang === 'bn' ? pkg.name : (pkg[`name_${lang}` as keyof typeof pkg] || pkg.name),
+      duration: lang === 'bn' ? pkg.duration : (pkg[`duration_${lang}` as keyof typeof pkg] || pkg.duration),
+      description: lang === 'bn' ? pkg.description : (pkg[`description_${lang}` as keyof typeof pkg] || pkg.description),
+      badge: lang === 'bn' ? pkg.badge : (pkg[`badge_${lang}` as keyof typeof pkg] || pkg.badge),
+      type: lang === 'bn' ? pkg.type : (pkg[`type_${lang}` as keyof typeof pkg] || pkg.type),
+    }));
+  });
+
+export const submitOrder = createServerFn({ method: "POST" })
+  .inputValidator((data) => z.object({
+    package_id: z.string(),
+    customer_name: z.string(),
+    phone: z.string(),
+    note: z.string().optional(),
+  }).parse(data))
+  .handler(async ({ data }) => {
+    const { error } = await supabase
+      .from("orders")
+      .insert([{
+        ...data,
+        note: data.note ?? null
+      }]);
+
+    if (error) throw error;
+    return { success: true };
+  });
