@@ -12,17 +12,22 @@ const languages = [
 ];
 
 export function Navbar() {
-  const { currentLang, setLanguage } = useTranslationStore();
+  const { currentLang, setLanguage, _hasHydrated } = useTranslationStore();
+  
+  const activeLang = _hasHydrated ? currentLang : 'bn';
   
   const { data: t } = useSuspenseQuery({
-    queryKey: ['translations', currentLang],
-    queryFn: () => getTranslations({ data: { lang: currentLang } }),
+    queryKey: ['translations', activeLang],
+    queryFn: () => getTranslations({ data: { lang: activeLang } }),
   });
 
   useEffect(() => {
-    document.documentElement.lang = currentLang;
-    document.documentElement.dir = currentLang === 'ar' ? 'rtl' : 'ltr';
-  }, [currentLang]);
+    if (_hasHydrated) {
+      document.documentElement.lang = activeLang;
+      document.documentElement.dir = activeLang === 'ar' ? 'rtl' : 'ltr';
+    }
+  }, [activeLang, _hasHydrated]);
+
 
   return (
     <header className="nav sticky top-0 z-20 flex items-center gap-7 px-5 py-3 border-b border-[#312747] bg-[rgba(12,9,30,0.86)] backdrop-blur-[14px]">
