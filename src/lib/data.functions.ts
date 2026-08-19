@@ -87,7 +87,10 @@ export const submitOrder = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const { error } = await supabase
       .from("orders")
-      .insert([data]);
+      .insert([{
+        ...data,
+        note: data.note ?? null
+      }]);
 
     if (error) throw error;
     return { success: true };
