@@ -12,15 +12,16 @@ interface OrderModalProps {
 }
 
 export function OrderModal({ packageId, packageName, onClose }: OrderModalProps) {
-  const { currentLang } = useTranslationStore();
+  const { currentLang, _hasHydrated } = useTranslationStore();
+  const activeLang = _hasHydrated ? currentLang : 'bn';
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [note, setNote] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   
   const { data: t } = useSuspenseQuery({
-    queryKey: ['translations', currentLang],
-    queryFn: () => getTranslations({ data: { lang: currentLang } }),
+    queryKey: ['translations', activeLang],
+    queryFn: () => getTranslations({ data: { lang: activeLang } }),
   });
 
   const orderFn = useServerFn(submitOrder);

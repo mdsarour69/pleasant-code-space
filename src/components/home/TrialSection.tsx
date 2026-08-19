@@ -3,11 +3,12 @@ import { useSuspenseQuery } from "@tanstack/react-query";
 import { getTranslations } from "@/lib/data.functions";
 
 export function TrialSection() {
-  const { currentLang } = useTranslationStore();
+  const { currentLang, _hasHydrated } = useTranslationStore();
+  const activeLang = _hasHydrated ? currentLang : 'bn';
   
   const { data: t } = useSuspenseQuery({
-    queryKey: ['translations', currentLang],
-    queryFn: () => getTranslations({ data: { lang: currentLang } }),
+    queryKey: ['translations', activeLang],
+    queryFn: () => getTranslations({ data: { lang: activeLang } }),
   });
 
   return (

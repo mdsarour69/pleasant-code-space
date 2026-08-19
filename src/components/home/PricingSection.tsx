@@ -5,17 +5,18 @@ import { useState } from "react";
 import { OrderModal } from "./OrderModal";
 
 export function PricingSection() {
-  const { currentLang } = useTranslationStore();
+  const { currentLang, _hasHydrated } = useTranslationStore();
+  const activeLang = _hasHydrated ? currentLang : 'bn';
   const [selectedPackage, setSelectedPackage] = useState<{ id: string; name: string } | null>(null);
   
   const { data: t } = useSuspenseQuery({
-    queryKey: ['translations', currentLang],
-    queryFn: () => getTranslations({ data: { lang: currentLang } }),
+    queryKey: ['translations', activeLang],
+    queryFn: () => getTranslations({ data: { lang: activeLang } }),
   });
 
   const { data: packages } = useSuspenseQuery({
-    queryKey: ['packages', currentLang],
-    queryFn: () => getPackages({ data: { lang: currentLang } }),
+    queryKey: ['packages', activeLang],
+    queryFn: () => getPackages({ data: { lang: activeLang } }),
   });
 
   const handleOpenOrder = (id: string, name: string) => {
