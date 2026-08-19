@@ -16,7 +16,7 @@ export function Navbar() {
   
   const { data: t } = useSuspenseQuery({
     queryKey: ['translations', currentLang],
-    queryFn: () => getTranslations({ lang: currentLang }),
+    queryFn: () => getTranslations({ data: { lang: currentLang } }),
   });
 
   useEffect(() => {
