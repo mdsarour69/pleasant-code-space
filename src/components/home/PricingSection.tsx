@@ -71,7 +71,7 @@ export function PricingSection() {
                 </button>
                 <button 
                   className="gradient-btn wide w-full mt-2.5 inline-flex items-center justify-center border-0 text-white bg-linear-to-r from-[#ffae30] to-[#ff3b9d] p-[13px] rounded-[28px] font-extrabold cursor-pointer shadow-[0_8px_24px_rgba(255,57,151,0.25)] hover:scale-[1.02] transition-transform"
-                  onClick={() => handleOpenOrder(p.id, p.name)}
+                  onClick={() => handleOpenOrder(String(p.id), String(p.name))}
                 >
                   {t['buy_now']}
                 </button>
