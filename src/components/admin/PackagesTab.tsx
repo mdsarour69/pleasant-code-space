@@ -178,6 +178,11 @@ export function PackagesTab({ packages }: { packages: Package[] }) {
           />
         </div>
         <Field
+          label="Button Text"
+          value={str("button")}
+          onChange={(v) => set("button", v)}
+        />
+        <Field
           label="Description"
           textarea
           value={str(langField("description", lang))}
