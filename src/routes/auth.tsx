@@ -42,9 +42,22 @@ function AuthPage() {
     try {
       if (mode === "password") {
         const res = await loginFn({ data: { password } });
-        if (res.success) {
-          toast.info("Password correct. Please sign in with your admin email.");
-          setMode("signin");
+        if (res.success && res.email) {
+          // Perform automatic login with the master password using the admin's email
+          const { error: loginErr } = await supabase.auth.signInWithPassword({ 
+            email: res.email, 
+            password: password 
+          });
+          
+          if (loginErr) {
+            // If master password doesn't match the specific admin account's password, 
+            // fallback to the signin mode so they can enter it manually.
+            toast.info("Password correct. Please sign in with your admin credentials.");
+            setEmail(res.email);
+            setMode("signin");
+          } else {
+            navigate({ to: "/admin", replace: true });
+          }
         }
       } else if (mode === "signin") {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
