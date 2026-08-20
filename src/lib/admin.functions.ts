@@ -86,6 +86,7 @@ const packageSchema = z.object({
   badge: z.string().max(100).default(""),
   type: z.string().max(100).default(""),
   description: z.string().max(1000).default(""),
+  button: z.string().max(100).default("BUY NOW"),
   name_en: z.string().max(200).default(""),
   name_ar: z.string().max(200).default(""),
   name_fr: z.string().max(200).default(""),
