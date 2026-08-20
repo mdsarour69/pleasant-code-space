@@ -21,6 +21,7 @@ const empty = {
   badge: "",
   type: "",
   description: "",
+  button: "BUY NOW",
 };
 
 export function PackagesTab({ packages }: { packages: Package[] }) {
