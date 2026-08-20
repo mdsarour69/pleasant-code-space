@@ -72,20 +72,22 @@ function AuthPage() {
       <div className="w-full max-w-sm rounded-2xl border border-[#2a2438] bg-[#120e1e] p-8">
         <h1 className="text-2xl font-bold text-white">ITFair Admin</h1>
         <p className="mt-1 text-sm text-[#9b93ad]">
-          {mode === "signin" ? "Sign in to manage your site" : "Create an admin account"}
+          {mode === "signin" ? "Sign in to manage your site" : mode === "signup" ? "Create an admin account" : "Enter the admin password to continue"}
         </p>
         <form onSubmit={handleSubmit} className="mt-6 space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="email" className="text-[#cfc9db]">Email</Label>
-            <Input
-              id="email"
-              type="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="border-[#2a2438] bg-[#0d0a17] text-white"
-            />
-          </div>
+          {mode !== "password" && (
+            <div className="space-y-2">
+              <Label htmlFor="email" className="text-[#cfc9db]">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="border-[#2a2438] bg-[#0d0a17] text-white"
+              />
+            </div>
+          )}
           <div className="space-y-2">
             <Label htmlFor="password" className="text-[#cfc9db]">Password</Label>
             <Input
