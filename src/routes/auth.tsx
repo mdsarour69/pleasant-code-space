@@ -25,7 +25,7 @@ export const Route = createFileRoute("/auth")({
 function AuthPage() {
   const navigate = useNavigate();
   const loginFn = useServerFn(passwordLogin);
-  const [mode, setMode] = useState<"signin" | "signup" | "password">("signin");
+  const [mode, setMode] = useState<"signin" | "signup" | "password">("password");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -42,9 +42,22 @@ function AuthPage() {
     try {
       if (mode === "password") {
         const res = await loginFn({ data: { password } });
-        if (res.success) {
-          toast.info("Password correct. Please sign in with your admin email.");
-          setMode("signin");
+        if (res.success && res.email) {
+          // Perform automatic login with the master password using the admin's email
+          const { error: loginErr } = await supabase.auth.signInWithPassword({ 
+            email: res.email, 
+            password: password 
+          });
+          
+          if (loginErr) {
+            // If master password doesn't match the specific admin account's password, 
+            // fallback to the signin mode so they can enter it manually.
+            toast.info("Password correct. Please sign in with your admin credentials.");
+            setEmail(res.email);
+            setMode("signin");
+          } else {
+            navigate({ to: "/admin", replace: true });
+          }
         }
       } else if (mode === "signin") {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
@@ -72,7 +85,7 @@ function AuthPage() {
       <div className="w-full max-w-sm rounded-2xl border border-[#2a2438] bg-[#120e1e] p-8">
         <h1 className="text-2xl font-bold text-white">ITFair Admin</h1>
         <p className="mt-1 text-sm text-[#9b93ad]">
-          {mode === "signin" ? "Sign in to manage your site" : mode === "signup" ? "Create an admin account" : "Enter the admin password to continue"}
+          {mode === "signin" ? "Sign in to manage your site" : mode === "signup" ? "Create an admin account" : "Password required to manage your site."}
         </p>
         <form onSubmit={handleSubmit} className="mt-6 space-y-4">
           {mode !== "password" && (
@@ -101,7 +114,7 @@ function AuthPage() {
             />
           </div>
           <Button type="submit" disabled={loading} className="w-full bg-[#ff3b9d] hover:bg-[#ff3b9d]/90">
-            {loading ? "Please wait…" : mode === "signin" ? "Sign in" : mode === "signup" ? "Sign up" : "Verify Password"}
+            {loading ? "Please wait…" : mode === "signin" ? "Sign in" : mode === "signup" ? "Sign up" : "Login"}
           </Button>
         </form>
         <div className="mt-4 flex flex-col gap-2">

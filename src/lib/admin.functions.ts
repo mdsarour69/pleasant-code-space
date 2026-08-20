@@ -173,14 +173,9 @@ export const passwordLogin = createServerFn({ method: "POST" })
       throw new Error("Invalid password");
     }
 
-    // Since we can't easily generate a Supabase session for a generic "admin" 
-    // without an email, we'll look for the first user with the admin role 
-    // and sign in as them, OR we can just instruct them to use email.
-    // However, for a true "password-only" feel, we can try to find an admin user.
-    
     const { data: roleData, error: roleError } = await supabaseAdmin
       .from("user_roles")
-      .select("user_id")
+      .select("user_id, auth_users:user_id(email)")
       .eq("role", "admin")
       .limit(1)
       .single();
@@ -188,13 +183,13 @@ export const passwordLogin = createServerFn({ method: "POST" })
     if (roleError || !roleData) {
       throw new Error("No admin user found. Please sign up first.");
     }
-
-    // We can't actually "sign in" the user from the server and give them a session 
-    // cookie/localStorage without their email/password.
-    // So this fallback will just confirm the password is correct, 
-    // and we'll tell the frontend to proceed IF it can.
-    // Actually, a better way is to just return the email of that admin user
-    // so the frontend can pre-fill it, or just use this to gate a special "Sarour" mode.
     
-    return { success: true, adminUserId: roleData.user_id };
+    // @ts-ignore - Supabase type joins can be complex
+    const email = roleData.auth_users?.email;
+    
+    if (!email) {
+      throw new Error("Admin email not found.");
+    }
+
+    return { success: true, email };
   });
