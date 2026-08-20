@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
+import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
 const idSchema = z.object({ id: z.string().uuid() });
 
@@ -162,4 +163,38 @@ export const saveSetting = createServerFn({ method: "POST" })
     const { error } = await context.supabase.from("settings").upsert(data, { onConflict: "key" });
     if (error) throw error;
     return { success: true };
+  });
+
+export const passwordLogin = createServerFn({ method: "POST" })
+  .inputValidator((data) => z.object({ password: z.string() }).parse(data))
+  .handler(async ({ data }) => {
+    const fallback = process.env['ADMIN_PASSWORD_FALLBACK'];
+    if (!fallback || data.password !== fallback) {
+      throw new Error("Invalid password");
+    }
+
+    // Since we can't easily generate a Supabase session for a generic "admin" 
+    // without an email, we'll look for the first user with the admin role 
+    // and sign in as them, OR we can just instruct them to use email.
+    // However, for a true "password-only" feel, we can try to find an admin user.
+    
+    const { data: roleData, error: roleError } = await supabaseAdmin
+      .from("user_roles")
+      .select("user_id")
+      .eq("role", "admin")
+      .limit(1)
+      .single();
+
+    if (roleError || !roleData) {
+      throw new Error("No admin user found. Please sign up first.");
+    }
+
+    // We can't actually "sign in" the user from the server and give them a session 
+    // cookie/localStorage without their email/password.
+    // So this fallback will just confirm the password is correct, 
+    // and we'll tell the frontend to proceed IF it can.
+    // Actually, a better way is to just return the email of that admin user
+    // so the frontend can pre-fill it, or just use this to gate a special "Sarour" mode.
+    
+    return { success: true, adminUserId: roleData.user_id };
   });
