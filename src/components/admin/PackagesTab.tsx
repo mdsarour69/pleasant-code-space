@@ -21,6 +21,7 @@ const empty = {
   badge: "",
   type: "",
   description: "",
+  button: "BUY NOW",
 };
 
 export function PackagesTab({ packages }: { packages: Package[] }) {
@@ -176,6 +177,11 @@ export function PackagesTab({ packages }: { packages: Package[] }) {
             onChange={(v) => set(langField("type", lang), v)}
           />
         </div>
+        <Field
+          label="Button Text"
+          value={str("button")}
+          onChange={(v) => set("button", v)}
+        />
         <Field
           label="Description"
           textarea

@@ -42,12 +42,22 @@ export function TrialSection() {
           </div>
         </div>
         
-        <button className="dark-btn w-full mt-2.5 rounded-[18px] p-[11px] border border-[#60494d] bg-[#1b1521] text-white cursor-pointer font-bold hover:bg-[#251d2e] transition-colors">
+        <a 
+          href={t['extension_url']}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="dark-btn w-full mt-2.5 rounded-[18px] p-[11px] border border-[#60494d] bg-[#1b1521] text-white cursor-pointer font-bold hover:bg-[#251d2e] transition-colors text-center inline-block"
+        >
           ⇩ {t['download_extension']}
-        </button>
-        <button className="gradient-btn wide w-full mt-2.5 inline-flex items-center justify-center border-0 text-white bg-linear-to-r from-[#ffae30] to-[#ff3b9d] p-[13px] rounded-[28px] font-extrabold cursor-pointer shadow-[0_8px_24px_rgba(255,57,151,0.25)] hover:scale-[1.02] transition-transform">
+        </a>
+        <a 
+          href={t['trial_url']}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="gradient-btn wide w-full mt-2.5 inline-flex items-center justify-center border-0 text-white bg-linear-to-r from-[#ffae30] to-[#ff3b9d] p-[13px] rounded-[28px] font-extrabold cursor-pointer shadow-[0_8px_24px_rgba(255,57,151,0.25)] hover:scale-[1.02] transition-transform"
+        >
           {t['trial_buy']} →
-        </button>
+        </a>
         <button className="green-btn wide w-full mt-2.5 rounded-[18px] p-[11px] border border-[#188b49] bg-[#0b2517] text-white cursor-pointer font-bold hover:bg-[#0f3621] transition-colors">
           ◷ {t['trial_free']}
         </button>

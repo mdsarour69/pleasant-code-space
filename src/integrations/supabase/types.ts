@@ -60,6 +60,7 @@ export type Database = {
           badge_en: string | null
           badge_fr: string | null
           badge_pt: string | null
+          button: string | null
           created_at: string | null
           description: string | null
           description_ar: string | null
@@ -93,6 +94,7 @@ export type Database = {
           badge_en?: string | null
           badge_fr?: string | null
           badge_pt?: string | null
+          button?: string | null
           created_at?: string | null
           description?: string | null
           description_ar?: string | null
@@ -126,6 +128,7 @@ export type Database = {
           badge_en?: string | null
           badge_fr?: string | null
           badge_pt?: string | null
+          button?: string | null
           created_at?: string | null
           description?: string | null
           description_ar?: string | null
