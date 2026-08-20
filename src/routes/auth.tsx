@@ -114,7 +114,7 @@ function AuthPage() {
             />
           </div>
           <Button type="submit" disabled={loading} className="w-full bg-[#ff3b9d] hover:bg-[#ff3b9d]/90">
-            {loading ? "Please wait…" : mode === "signin" ? "Sign in" : mode === "signup" ? "Sign up" : "Verify Password"}
+            {loading ? "Please wait…" : mode === "signin" ? "Sign in" : mode === "signup" ? "Sign up" : "Login"}
           </Button>
         </form>
         <div className="mt-4 flex flex-col gap-2">
