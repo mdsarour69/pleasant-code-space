@@ -9,6 +9,7 @@ import { OrdersTab } from "@/components/admin/OrdersTab";
 import { ServicesTab } from "@/components/admin/ServicesTab";
 import { PackagesTab } from "@/components/admin/PackagesTab";
 import { SettingsTab } from "@/components/admin/SettingsTab";
+import { DashboardTab } from "@/components/admin/DashboardTab";
 
 export const Route = createFileRoute("/_authenticated/admin")({
   head: () => ({
@@ -73,13 +74,21 @@ function AdminPage() {
         ) : dataQuery.isLoading || !dataQuery.data ? (
           <p className="text-sm text-[#9b93ad]">Loading data…</p>
         ) : (
-          <Tabs defaultValue="orders">
+          <Tabs defaultValue="dashboard">
             <TabsList className="mb-6 bg-[#120e1e]">
+              <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
               <TabsTrigger value="orders">Orders</TabsTrigger>
               <TabsTrigger value="services">Services</TabsTrigger>
               <TabsTrigger value="packages">Packages</TabsTrigger>
               <TabsTrigger value="settings">Site text</TabsTrigger>
             </TabsList>
+            <TabsContent value="dashboard">
+              <DashboardTab 
+                orders={dataQuery.data.orders} 
+                services={dataQuery.data.services}
+                packages={dataQuery.data.packages}
+              />
+            </TabsContent>
             <TabsContent value="orders">
               <OrdersTab orders={dataQuery.data.orders} packages={dataQuery.data.packages} />
             </TabsContent>
