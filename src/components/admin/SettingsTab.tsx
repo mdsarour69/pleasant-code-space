@@ -4,9 +4,12 @@ import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { saveSetting } from "@/lib/admin.functions";
 import { LANGS, LangTabs, type LangCode } from "./EntityDialog";
+import { Link2, Globe, Type } from "lucide-react";
 import type { Tables } from "@/integrations/supabase/types";
+
 
 type Setting = Tables<"settings">;
 
