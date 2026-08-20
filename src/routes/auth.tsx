@@ -101,16 +101,25 @@ function AuthPage() {
             />
           </div>
           <Button type="submit" disabled={loading} className="w-full bg-[#ff3b9d] hover:bg-[#ff3b9d]/90">
-            {loading ? "Please wait…" : mode === "signin" ? "Sign in" : "Sign up"}
+            {loading ? "Please wait…" : mode === "signin" ? "Sign in" : mode === "signup" ? "Sign up" : "Verify Password"}
           </Button>
         </form>
-        <button
-          type="button"
-          onClick={() => setMode(mode === "signin" ? "signup" : "signin")}
-          className="mt-4 w-full text-sm text-[#9b93ad] underline-offset-4 hover:underline"
-        >
-          {mode === "signin" ? "Need an account? Sign up" : "Already have an account? Sign in"}
-        </button>
+        <div className="mt-4 flex flex-col gap-2">
+          <button
+            type="button"
+            onClick={() => setMode(mode === "signin" ? "signup" : "signin")}
+            className="w-full text-sm text-[#9b93ad] underline-offset-4 hover:underline"
+          >
+            {mode === "signin" ? "Need an account? Sign up" : "Already have an account? Sign in"}
+          </button>
+          <button
+            type="button"
+            onClick={() => setMode(mode === "password" ? "signin" : "password")}
+            className="w-full text-[10px] text-[#6f6880] underline-offset-4 hover:underline"
+          >
+            {mode === "password" ? "Use email/password" : "Master password fallback"}
+          </button>
+        </div>
       </div>
     </main>
   );
