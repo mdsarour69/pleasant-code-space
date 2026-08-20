@@ -55,8 +55,8 @@ export function DashboardTab({ orders, services, packages }: DashboardTabProps) 
            <div className="flex-1 rounded-lg bg-[#0d0a17] p-3 border border-[#2a2438]">
              <p className="text-[10px] uppercase tracking-wider text-[#6f6880] font-bold">Recent Activity</p>
              <p className="mt-1 text-sm text-white">
-               {orders.length > 0 
-                ? `Last order from ${orders[0].customer_name} (${new Date(orders[0].created_at || '').toLocaleDateString()})` 
+               {orders.length > 0 && orders[0]
+                ? `Last order from ${orders[0].customer_name} (${new Date(orders[0].created_at ?? '').toLocaleDateString()})` 
                 : 'No recent orders.'}
              </p>
            </div>
