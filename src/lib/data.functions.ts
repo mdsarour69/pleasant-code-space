@@ -79,6 +79,7 @@ export const getPackages = createServerFn({ method: "GET" })
       description: sanitize(lang === 'bn' ? pkg.description : (pkg[`description_${lang}` as keyof typeof pkg] || pkg.description) as string),
       badge: sanitize(lang === 'bn' ? pkg.badge : (pkg[`badge_${lang}` as keyof typeof pkg] || pkg.badge) as string),
       type: sanitize(lang === 'bn' ? pkg.type : (pkg[`type_${lang}` as keyof typeof pkg] || pkg.type) as string),
+      button: sanitize(pkg.button || "BUY NOW"),
     }));
   });
 
