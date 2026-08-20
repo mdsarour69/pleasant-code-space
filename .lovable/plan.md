@@ -1,26 +1,24 @@
 # Cleanup plan for invisible separator characters
 
-The user is reporting the presence of invisible separator characters (`\u2063` - Invisible Separator) in the text content and wants them removed. These are likely artifacts from the original PHP code or translation strings.
-
-## User Review Required
-
-> [!IMPORTANT]
-> Since I could not find literal `\u2063` strings in the codebase using search tools, these characters are likely embedded invisibly in the database seed data or source files. I will perform a search-and-replace for the actual invisible character.
+The user reported the presence of invisible separator characters (`\u2063` - Invisible Separator) and wants them removed. Although a comprehensive search across files and the current database state did not reveal active instances of this character, I will implement a global sanitization filter in the data fetching layer to ensure no such characters reach the UI, while also performing a final manual cleanup of potential source locations.
 
 ## Proposed Changes
 
-### Database Seed Data
-- Clean up the `supabase/migrations/20260819000000_initial_schema.sql` file by removing any invisible U+2063 characters from the `INSERT` statements for `settings`, `services`, and `packages`.
-- Run a migration to clean existing data in the database.
+### Data Layer Sanitization
+- Update `src/lib/data.functions.ts` to include a utility function that strips `\u2063` characters from all strings fetched from the database.
+- Apply this filter to `getTranslations`, `getServices`, and `getPackages`.
 
-### Frontend Components
-- Scan and clean the following components for any invisible U+2063 characters:
-    - `src/components/home/Hero.tsx`
-    - `src/components/home/TrialSection.tsx`
-    - `src/components/home/PricingSection.tsx`
-    - `src/components/home/ContactFooter.tsx`
-    - `src/components/home/Navbar.tsx`
+### Database Sanitization Migration
+- Create and run a one-time migration to strip `\u2063` from all existing data in `settings`, `services`, and `packages` tables just in case they exist in fields not covered by initial checks.
+
+### Frontend Review
+- Final visual check of key components to ensure no hardcoded invisible characters remain in the UI source.
 
 ## Technical Details
-- Use `sed` or a custom script to replace the U+2063 character (Invisible Separator) with an empty string or a standard space where appropriate.
-- Verify the removal by running `grep -rP '\x{2063}' .` (if the environment supports it) or checking file hex dumps.
+- Utility function: `const sanitize = (val: string) => val.replace(/\u2063/g, '');`
+- SQL Migration:
+  ```sql
+  UPDATE public.settings SET value = replace(value, E'\u2063', '');
+  UPDATE public.services SET title = replace(title, E'\u2063', ''), description = replace(description, E'\u2063', '');
+  -- (and similar for all multilingual columns)
+  ```
