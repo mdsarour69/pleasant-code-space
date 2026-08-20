@@ -2,6 +2,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
+const sanitize = (val: string | null | undefined) => {
+  if (typeof val !== 'string') return val || "";
+  return val.replace(/\u2063/g, '');
+};
+
 export const getTranslations = createServerFn({ method: "GET" })
   .inputValidator((data) => z.object({ lang: z.string() }).parse(data))
   .handler(async ({ data: { lang } }) => {
@@ -19,20 +24,20 @@ export const getTranslations = createServerFn({ method: "GET" })
     data.filter(item => item.key.startsWith('bn.'))
       .forEach(item => {
         const key = item.key.substring(3);
-        translations[key] = item.value;
+        translations[key] = sanitize(item.value);
       });
 
     // Second pass: override with requested language (without the prefix)
     data.filter(item => item.key.startsWith(`${lang}.`))
       .forEach(item => {
         const key = item.key.substring(lang.length + 1);
-        translations[key] = item.value;
+        translations[key] = sanitize(item.value);
       });
 
     // Add legacy keys directly
     data.filter(item => !item.key.includes('.'))
       .forEach(item => {
-        translations[item.key] = item.value;
+        translations[item.key] = sanitize(item.value);
       });
 
     return translations;
@@ -51,8 +56,8 @@ export const getServices = createServerFn({ method: "GET" })
 
     return data.map(service => ({
       ...service,
-      title: lang === 'bn' ? service.title : (service[`title_${lang}` as keyof typeof service] || service.title),
-      description: lang === 'bn' ? service.description : (service[`description_${lang}` as keyof typeof service] || service.description),
+      title: sanitize(lang === 'bn' ? service.title : (service[`title_${lang}` as keyof typeof service] || service.title) as string),
+      description: sanitize(lang === 'bn' ? service.description : (service[`description_${lang}` as keyof typeof service] || service.description) as string),
     }));
   });
 
@@ -69,11 +74,11 @@ export const getPackages = createServerFn({ method: "GET" })
 
     return data.map(pkg => ({
       ...pkg,
-      name: lang === 'bn' ? pkg.name : (pkg[`name_${lang}` as keyof typeof pkg] || pkg.name),
-      duration: lang === 'bn' ? pkg.duration : (pkg[`duration_${lang}` as keyof typeof pkg] || pkg.duration),
-      description: lang === 'bn' ? pkg.description : (pkg[`description_${lang}` as keyof typeof pkg] || pkg.description),
-      badge: lang === 'bn' ? pkg.badge : (pkg[`badge_${lang}` as keyof typeof pkg] || pkg.badge),
-      type: lang === 'bn' ? pkg.type : (pkg[`type_${lang}` as keyof typeof pkg] || pkg.type),
+      name: sanitize(lang === 'bn' ? pkg.name : (pkg[`name_${lang}` as keyof typeof pkg] || pkg.name) as string),
+      duration: sanitize(lang === 'bn' ? pkg.duration : (pkg[`duration_${lang}` as keyof typeof pkg] || pkg.duration) as string),
+      description: sanitize(lang === 'bn' ? pkg.description : (pkg[`description_${lang}` as keyof typeof pkg] || pkg.description) as string),
+      badge: sanitize(lang === 'bn' ? pkg.badge : (pkg[`badge_${lang}` as keyof typeof pkg] || pkg.badge) as string),
+      type: sanitize(lang === 'bn' ? pkg.type : (pkg[`type_${lang}` as keyof typeof pkg] || pkg.type) as string),
     }));
   });
 
