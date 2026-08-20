@@ -40,7 +40,13 @@ function AuthPage() {
     e.preventDefault();
     setLoading(true);
     try {
-      if (mode === "signin") {
+      if (mode === "password") {
+        const res = await loginFn({ data: { password } });
+        if (res.success) {
+          toast.info("Password correct. Please sign in with your admin email.");
+          setMode("signin");
+        }
+      } else if (mode === "signin") {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
         navigate({ to: "/admin", replace: true });
