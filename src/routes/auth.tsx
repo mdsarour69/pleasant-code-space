@@ -85,7 +85,7 @@ function AuthPage() {
       <div className="w-full max-w-sm rounded-2xl border border-[#2a2438] bg-[#120e1e] p-8">
         <h1 className="text-2xl font-bold text-white">ITFair Admin</h1>
         <p className="mt-1 text-sm text-[#9b93ad]">
-          {mode === "signin" ? "Sign in to manage your site" : mode === "signup" ? "Create an admin account" : "Enter the admin password to continue"}
+          {mode === "signin" ? "Sign in to manage your site" : mode === "signup" ? "Create an admin account" : "Password required to manage your site."}
         </p>
         <form onSubmit={handleSubmit} className="mt-6 space-y-4">
           {mode !== "password" && (
