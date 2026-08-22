@@ -185,16 +185,21 @@ function ServicesTab({ services }: { services: Service[] }) {
   const qc = useQueryClient();
   const save = useServerFn(saveService);
   const remove = useServerFn(deleteService);
+  const removeAll = useServerFn(deleteAllServices);
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState<any>({ icon: "🚀", active: true, title: "" });
   const [lang, setLang] = useState<LangCode>("bn");
 
   const saveMut = useMutation({ mutationFn: (d:any) => save({data:d}), onSuccess: () => { setOpen(false); qc.invalidateQueries({queryKey:["admin-data"]}); } });
   const delMut = useMutation({ mutationFn: (id:string) => remove({data:{id}}), onSuccess: () => qc.invalidateQueries({queryKey:["admin-data"]}) });
+  const delAllMut = useMutation({ mutationFn: () => removeAll({}), onSuccess: () => qc.invalidateQueries({queryKey:["admin-data"]}) });
 
   return (
     <div className="space-y-4">
-      <Button onClick={() => setOpen(true)}>Add service</Button>
+      <div className="flex justify-between">
+        <Button onClick={() => setOpen(true)}>Add service</Button>
+        <Button variant="destructive" size="sm" onClick={() => delAllMut.mutate()}>Delete All</Button>
+      </div>
       <div className="grid gap-4 sm:grid-cols-2">
         {services.map((s) => (
           <div key={s.id} className="rounded-xl border border-[#2a2438] bg-[#120e1e] p-4 text-white flex justify-between">
@@ -219,16 +224,21 @@ function PackagesTab({ packages }: { packages: Pkg[] }) {
   const qc = useQueryClient();
   const save = useServerFn(savePackage);
   const remove = useServerFn(deletePackage);
+  const removeAll = useServerFn(deleteAllPackages);
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState<any>({ price: 0, active: true, name: "" });
   const [lang, setLang] = useState<LangCode>("bn");
   
   const saveMut = useMutation({ mutationFn: (d:any) => save({data:d}), onSuccess: () => { setOpen(false); qc.invalidateQueries({queryKey:["admin-data"]}); } });
   const delMut = useMutation({ mutationFn: (id:string) => remove({data:{id}}), onSuccess: () => qc.invalidateQueries({queryKey:["admin-data"]}) });
+  const delAllMut = useMutation({ mutationFn: () => removeAll({}), onSuccess: () => qc.invalidateQueries({queryKey:["admin-data"]}) });
 
   return (
     <div className="space-y-4">
-      <Button onClick={() => setOpen(true)}>Add package</Button>
+      <div className="flex justify-between">
+        <Button onClick={() => setOpen(true)}>Add package</Button>
+        <Button variant="destructive" size="sm" onClick={() => delAllMut.mutate()}>Delete All</Button>
+      </div>
       <div className="grid gap-4 sm:grid-cols-2">
         {packages.map((p) => (
           <div key={p.id} className="rounded-xl border border-[#2a2438] bg-[#120e1e] p-4 text-white flex justify-between">
