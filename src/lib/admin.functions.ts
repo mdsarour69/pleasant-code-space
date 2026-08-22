@@ -12,7 +12,7 @@ export const getMyRole = createServerFn({ method: "GET" })
       _user_id: context.userId,
       _role: "admin",
     });
-    if (error) throw error;
+    if (error) return { isAdmin: false };
     return { isAdmin: Boolean(data) };
   });
 
@@ -159,6 +159,22 @@ export const deleteAllOrders = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const { error } = await context.supabase.from("orders").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+    if (error) throw error;
+    return { success: true };
+  });
+
+export const deleteAllServices = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { error } = await context.supabase.from("services").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+    if (error) throw error;
+    return { success: true };
+  });
+
+export const deleteAllPackages = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { error } = await context.supabase.from("packages").delete().neq("id", "00000000-0000-0000-0000-000000000000");
     if (error) throw error;
     return { success: true };
   });
