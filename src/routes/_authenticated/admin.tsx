@@ -8,8 +8,8 @@ import { toast } from "sonner";
 import { useState } from "react";
 import { 
   adminListAll, getMyRole, 
-  saveService, deleteService, 
-  savePackage, deletePackage, 
+  saveService, deleteService, deleteAllServices,
+  savePackage, deletePackage, deleteAllPackages,
   updateOrderStatus, deleteOrder, deleteAllOrders,
   saveSetting
 } from "@/lib/admin.functions";
