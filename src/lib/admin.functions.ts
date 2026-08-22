@@ -12,7 +12,7 @@ export const getMyRole = createServerFn({ method: "GET" })
       _user_id: context.userId,
       _role: "admin",
     });
-    if (error) throw error;
+    if (error) return { isAdmin: false };
     return { isAdmin: Boolean(data) };
   });
 
