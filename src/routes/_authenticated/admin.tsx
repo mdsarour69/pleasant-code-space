@@ -14,7 +14,7 @@ import {
   saveSetting
 } from "@/lib/admin.functions";
 import { LayoutDashboard, ShoppingCart, Package, Settings, Star, Link2, Globe } from "lucide-react";
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -122,7 +122,7 @@ function AdminPage() {
           </TabsList>
           
           <TabsContent value="dashboard"><DashboardTab orders={orders} services={services} packages={packages} /></TabsContent>
-          <TabsContent value="orders"><OrdersTab orders={orders} packages={packages} /></TabsContent>
+          <TabsContent value="orders"><OrdersTab orders={orders} /></TabsContent>
           <TabsContent value="services"><ServicesTab services={services} /></TabsContent>
           <TabsContent value="packages"><PackagesTab packages={packages} /></TabsContent>
           <TabsContent value="settings"><SettingsTab settings={settings} /></TabsContent>
@@ -157,11 +157,9 @@ function DashboardTab({ orders, services, packages }: any) {
 
 function OrdersTab({ orders }: { orders: Order[] }) {
   const qc = useQueryClient();
-  const setStatus = useServerFn(updateOrderStatus);
   const deleteOrderFn = useServerFn(deleteOrder);
   const deleteAllFn = useServerFn(deleteAllOrders);
   
-  const statusMutation = useMutation({ mutationFn: (vars:any) => setStatus({data:vars}), onSuccess: () => qc.invalidateQueries({queryKey:["admin-data"]}) });
   const delMutation = useMutation({ mutationFn: (id:string) => deleteOrderFn({data:{id}}), onSuccess: () => qc.invalidateQueries({queryKey:["admin-data"]}) });
   const delAllMutation = useMutation({ mutationFn: () => deleteAllFn({}), onSuccess: () => qc.invalidateQueries({queryKey:["admin-data"]}) });
 
@@ -175,7 +173,7 @@ function OrdersTab({ orders }: { orders: Order[] }) {
         <div key={o.id} className="rounded-lg border border-[#2a2438] bg-[#120e1e] p-4 text-white flex justify-between">
           <div><p className="font-bold">{o.customer_name}</p><p className="text-sm text-[#9b93ad]">{o.phone}</p></div>
           <div className="flex gap-2">
-            <Button size="sm" onClick={() => delMutation.mutate(o.id)}>Delete</Button>
+            <Button size="sm" variant="ghost" onClick={() => delMutation.mutate(o.id)}>Delete</Button>
           </div>
         </div>
       ))}
