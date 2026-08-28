@@ -25,8 +25,6 @@ export const Route = createFileRoute("/auth")({
 function AuthPage() {
   const navigate = useNavigate();
   const loginFn = useServerFn(passwordLogin);
-  const [mode, setMode] = useState<"signin" | "signup" | "password">("password");
-  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -40,41 +38,16 @@ function AuthPage() {
     e.preventDefault();
     setLoading(true);
     try {
-      if (mode === "password") {
-        const res = await loginFn({ data: { password } });
-        if (res.success && res.email) {
-          // Perform automatic login with the master password using the admin's email
-          const { error: loginErr } = await supabase.auth.signInWithPassword({ 
-            email: res.email, 
-            password: password 
-          });
-          
-          if (loginErr) {
-            // If master password doesn't match the specific admin account's password, 
-            // fallback to the signin mode so they can enter it manually.
-            toast.info("Password correct. Please sign in with your admin credentials.");
-            setEmail(res.email);
-            setMode("signin");
-          } else {
-            navigate({ to: "/admin", replace: true });
-          }
-        }
-      } else if (mode === "signin") {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) throw error;
-        navigate({ to: "/admin", replace: true });
-      } else {
-        const { error } = await supabase.auth.signUp({
-          email,
-          password,
-          options: { emailRedirectTo: `${window.location.origin}/admin` },
-        });
-        if (error) throw error;
-        toast.success("Account created. You can sign in now.");
-        setMode("signin");
-      }
+      const res = await loginFn({ data: { password } });
+      if (!res.success || !res.email) throw new Error("Invalid password");
+      const { error } = await supabase.auth.signInWithPassword({
+        email: res.email,
+        password,
+      });
+      if (error) throw error;
+      navigate({ to: "/admin", replace: true });
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Something went wrong");
+      toast.error(err instanceof Error ? err.message : "Invalid password");
     } finally {
       setLoading(false);
     }
@@ -84,55 +57,24 @@ function AuthPage() {
     <main className="flex min-h-screen items-center justify-center bg-[#080512] px-4">
       <div className="w-full max-w-sm rounded-2xl border border-[#2a2438] bg-[#120e1e] p-8">
         <h1 className="text-2xl font-bold text-white">ITFair Admin</h1>
-        <p className="mt-1 text-sm text-[#9b93ad]">
-          {mode === "signin" ? "Sign in to manage your site" : mode === "signup" ? "Create an admin account" : "Password required to manage your site."}
-        </p>
+        <p className="mt-1 text-sm text-[#9b93ad]">Enter the admin password to continue.</p>
         <form onSubmit={handleSubmit} className="mt-6 space-y-4">
-          {mode !== "password" && (
-            <div className="space-y-2">
-              <Label htmlFor="email" className="text-[#cfc9db]">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="border-[#2a2438] bg-[#0d0a17] text-white"
-              />
-            </div>
-          )}
           <div className="space-y-2">
             <Label htmlFor="password" className="text-[#cfc9db]">Password</Label>
             <Input
               id="password"
               type="password"
               required
-              minLength={6}
+              autoFocus
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="border-[#2a2438] bg-[#0d0a17] text-white"
             />
           </div>
           <Button type="submit" disabled={loading} className="w-full bg-[#ff3b9d] hover:bg-[#ff3b9d]/90">
-            {loading ? "Please wait…" : mode === "signin" ? "Sign in" : mode === "signup" ? "Sign up" : "Login"}
+            {loading ? "Please wait…" : "Login"}
           </Button>
         </form>
-        <div className="mt-4 flex flex-col gap-2">
-          <button
-            type="button"
-            onClick={() => setMode(mode === "signin" ? "signup" : "signin")}
-            className="w-full text-sm text-[#9b93ad] underline-offset-4 hover:underline"
-          >
-            {mode === "signin" ? "Need an account? Sign up" : "Already have an account? Sign in"}
-          </button>
-          <button
-            type="button"
-            onClick={() => setMode(mode === "password" ? "signin" : "password")}
-            className="w-full text-[10px] text-[#6f6880] underline-offset-4 hover:underline"
-          >
-            {mode === "password" ? "Use email/password" : "Master password fallback"}
-          </button>
-        </div>
       </div>
     </main>
   );
