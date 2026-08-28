@@ -1,7 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
-import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
 const idSchema = z.object({ id: z.string().uuid() });
 
@@ -199,6 +198,8 @@ export const passwordLogin = createServerFn({ method: "POST" })
     if (!fallback || data.password !== fallback) {
       throw new Error("Invalid password");
     }
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
     // Ensure a dedicated, confirmed admin account exists whose password is the master password.
     const { data: list } = await supabaseAdmin.auth.admin.listUsers({ page: 1, perPage: 200 });
