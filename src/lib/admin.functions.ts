@@ -190,6 +190,8 @@ export const saveSetting = createServerFn({ method: "POST" })
     return { success: true };
   });
 
+const ADMIN_EMAIL = "admin@itfair.app";
+
 export const passwordLogin = createServerFn({ method: "POST" })
   .inputValidator((data) => z.object({ password: z.string() }).parse(data))
   .handler(async ({ data }) => {
@@ -198,23 +200,31 @@ export const passwordLogin = createServerFn({ method: "POST" })
       throw new Error("Invalid password");
     }
 
-    const { data: roleData, error: roleError } = await supabaseAdmin
+    // Ensure a dedicated, confirmed admin account exists whose password is the master password.
+    const { data: list } = await supabaseAdmin.auth.admin.listUsers({ page: 1, perPage: 200 });
+    const existing = list?.users?.find((u) => u.email === ADMIN_EMAIL);
+
+    let userId: string;
+    if (existing) {
+      userId = existing.id;
+      await supabaseAdmin.auth.admin.updateUserById(userId, {
+        password: fallback,
+        email_confirm: true,
+      });
+    } else {
+      const { data: created, error: createErr } = await supabaseAdmin.auth.admin.createUser({
+        email: ADMIN_EMAIL,
+        password: fallback,
+        email_confirm: true,
+      });
+      if (createErr || !created?.user) throw new Error("Could not prepare admin account");
+      userId = created.user.id;
+    }
+
+    await supabaseAdmin
       .from("user_roles")
-      .select("user_id, auth_users:user_id(email)")
-      .eq("role", "admin")
-      .limit(1)
-      .single();
+      .upsert({ user_id: userId, role: "admin" }, { onConflict: "user_id,role" });
 
-    if (roleError || !roleData) {
-      throw new Error("No admin user found. Please sign up first.");
-    }
-    
-    // @ts-ignore - Supabase type joins can be complex
-    const email = roleData.auth_users?.email;
-    
-    if (!email) {
-      throw new Error("Admin email not found.");
-    }
-
-    return { success: true, email };
+    return { success: true, email: ADMIN_EMAIL };
   });
+
