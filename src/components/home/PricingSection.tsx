@@ -60,7 +60,7 @@ export function PricingSection() {
                 <small className="text-[#aaa] text-[9px] block">◉ {p.duration}</small>
                 
                 <div className="price text-[28px] font-black m-[20px_0_8px] text-white">
-                  ৳ {p.price} {p.old_price && <del className="text-xs text-[#777] ml-2 font-normal">৳{p.old_price}</del>}
+                  {currency} {p.price} {p.old_price ? <del className="text-xs text-[#777] ml-2 font-normal">{currency}{p.old_price}</del> : null}
                 </div>
                 
                 <div className="save inline-block text-[9px] text-[#ff59a3] bg-[#39142b] border border-[#5c2247] rounded-[8px] px-2 py-1 font-bold">
