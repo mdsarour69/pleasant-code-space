@@ -290,9 +290,12 @@ function SettingsTab({ settings }: { settings: Setting[] }) {
         <LangTabs value={lang} onChange={setLang} />
         <div className="grid gap-4 mt-4 sm:grid-cols-2">
            {rows.map((s) => (
-             <div key={s.key} className="flex gap-2">
-               <Input value={drafts[s.key] ?? s.value} onChange={(e) => setDrafts({...drafts, [s.key]: e.target.value})} className="bg-[#0d0a17]" />
-               <Button onClick={() => mutation.mutate({key: s.key, value: drafts[s.key] ?? s.value})}>Save</Button>
+             <div key={s.key} className="space-y-1">
+               <label className="text-xs text-[#9b93ad]">{s.key.slice(lang.length + 1)}</label>
+               <div className="flex gap-2">
+                 <Input value={drafts[s.key] ?? s.value} onChange={(e) => setDrafts({...drafts, [s.key]: e.target.value})} className="bg-[#0d0a17]" />
+                 <Button onClick={() => mutation.mutate({key: s.key, value: drafts[s.key] ?? s.value})}>Save</Button>
+               </div>
              </div>
            ))}
         </div>
