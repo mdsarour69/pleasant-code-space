@@ -260,44 +260,131 @@ function PackagesTab({ packages }: { packages: Pkg[] }) {
   );
 }
 
+const CURRENCIES = [
+  { symbol: "৳", label: "Taka (৳)" },
+  { symbol: "$", label: "Dollar ($)" },
+  { symbol: "€", label: "Euro (€)" },
+  { symbol: "£", label: "Pound (£)" },
+  { symbol: "₹", label: "Rupee (₹)" },
+  { symbol: "﷼", label: "Riyal (﷼)" },
+];
+
 function SettingsTab({ settings }: { settings: Setting[] }) {
   const qc = useQueryClient();
   const save = useServerFn(saveSetting);
   const [lang, setLang] = useState<LangCode>("bn");
   const [drafts, setDrafts] = useState<Record<string, string>>({});
-  const mutation = useMutation({ mutationFn: (v:any) => save({data:v}), onSuccess: () => qc.invalidateQueries({queryKey:["admin-data"]}) });
-  
-  const rows = settings.filter((s) => s.key.startsWith(`${lang}.`));
-  const globalLinks = settings.filter((s) => !s.key.includes("."));
-  
+  const [search, setSearch] = useState("");
+  const [newKey, setNewKey] = useState("");
+  const [newValue, setNewValue] = useState("");
+  const [savingKey, setSavingKey] = useState<string | null>(null);
+
+  const mutation = useMutation({
+    mutationFn: (v: { key: string; value: string }) => save({ data: v }),
+    onMutate: (v) => setSavingKey(v.key),
+    onSuccess: (_d, v) => {
+      toast.success(`Saved “${v.key}”`);
+      qc.invalidateQueries({ queryKey: ["admin-data"] });
+    },
+    onError: () => toast.error("Could not save"),
+    onSettled: () => setSavingKey(null),
+  });
+
+  const saveAll = async (list: Setting[]) => {
+    const changed = list.filter((s) => drafts[s.key] !== undefined && drafts[s.key] !== s.value);
+    if (!changed.length) return toast.info("No changes to save");
+    for (const s of changed) await save({ data: { key: s.key, value: drafts[s.key]! } });
+    toast.success(`Saved ${changed.length} item(s)`);
+    qc.invalidateQueries({ queryKey: ["admin-data"] });
+  };
+
+  const currency = drafts["currency_symbol"] ?? settings.find((s) => s.key === "currency_symbol")?.value ?? "৳";
+  const match = (k: string) => k.toLowerCase().includes(search.trim().toLowerCase());
+  const rows = settings.filter((s) => s.key.startsWith(`${lang}.`) && match(s.key));
+  const globals = settings.filter((s) => !s.key.includes(".") && match(s.key));
+
+  const Row = ({ s, label }: { s: Setting; label: string }) => (
+    <div className="space-y-1 rounded-lg p-2 transition-colors duration-200 hover:bg-[#181227]">
+      <label className="text-xs text-[#9b93ad]">{label}</label>
+      <div className="flex gap-2">
+        <Input
+          value={drafts[s.key] ?? s.value}
+          onChange={(e) => setDrafts({ ...drafts, [s.key]: e.target.value })}
+          className="border-[#2a2438] bg-[#0d0a17] transition-colors focus-visible:border-[#ff3b9d]"
+        />
+        <Button
+          disabled={savingKey === s.key}
+          className="transition-transform active:scale-95"
+          onClick={() => mutation.mutate({ key: s.key, value: drafts[s.key] ?? s.value })}
+        >
+          {savingKey === s.key ? "…" : "Save"}
+        </Button>
+      </div>
+    </div>
+  );
+
   return (
-    <div className="space-y-8 text-white">
-      <section className="p-6 border border-[#2a2438] bg-[#120e1e] rounded-xl">
-        <h2 className="text-lg font-semibold mb-4">Global Links & Currency</h2>
-        <div className="grid gap-4 sm:grid-cols-2">
-          {globalLinks.map((s) => (
-             <div key={s.key} className="space-y-1">
-               <label className="text-xs text-[#9b93ad]">{s.key}</label>
-               <div className="flex gap-2">
-                 <Input value={drafts[s.key] ?? s.value} onChange={(e) => setDrafts({...drafts, [s.key]: e.target.value})} className="bg-[#0d0a17]" />
-                 <Button onClick={() => mutation.mutate({key: s.key, value: drafts[s.key] ?? s.value})}>Save</Button>
-               </div>
-             </div>
+    <div className="space-y-8 text-white animate-in fade-in duration-300">
+      <Input
+        placeholder="Search any setting…"
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        className="border-[#2a2438] bg-[#0d0a17] text-white"
+      />
+
+      <section className="rounded-xl border border-[#2a2438] bg-[#120e1e] p-6">
+        <h2 className="mb-4 text-lg font-semibold">Currency</h2>
+        <div className="flex flex-wrap gap-2">
+          {CURRENCIES.map((c) => (
+            <button
+              key={c.symbol}
+              type="button"
+              onClick={() => {
+                setDrafts({ ...drafts, currency_symbol: c.symbol });
+                mutation.mutate({ key: "currency_symbol", value: c.symbol });
+              }}
+              className={`rounded-full px-4 py-1.5 text-sm transition-all duration-200 active:scale-95 ${currency === c.symbol ? "bg-[#ff3b9d] text-white" : "border border-[#2a2438] text-[#9b93ad] hover:text-white"}`}
+            >
+              {c.label}
+            </button>
           ))}
         </div>
+        <p className="mt-3 text-xs text-[#9b93ad]">All prices on the site use this symbol.</p>
       </section>
-      <section className="p-6 border border-[#2a2438] bg-[#120e1e] rounded-xl">
-        <LangTabs value={lang} onChange={setLang} />
-        <div className="grid gap-4 mt-4 sm:grid-cols-2">
-           {rows.map((s) => (
-             <div key={s.key} className="space-y-1">
-               <label className="text-xs text-[#9b93ad]">{s.key.slice(lang.length + 1)}</label>
-               <div className="flex gap-2">
-                 <Input value={drafts[s.key] ?? s.value} onChange={(e) => setDrafts({...drafts, [s.key]: e.target.value})} className="bg-[#0d0a17]" />
-                 <Button onClick={() => mutation.mutate({key: s.key, value: drafts[s.key] ?? s.value})}>Save</Button>
-               </div>
-             </div>
-           ))}
+
+      <section className="rounded-xl border border-[#2a2438] bg-[#120e1e] p-6">
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="text-lg font-semibold">Site identity & links</h2>
+          <Button variant="secondary" onClick={() => saveAll(globals)}>Save all</Button>
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2">
+          {globals.map((s) => <Row key={s.key} s={s} label={s.key} />)}
+        </div>
+        <div className="mt-6 border-t border-[#2a2438] pt-4">
+          <h3 className="mb-2 text-sm font-semibold">Add a new setting</h3>
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <Input placeholder="key (e.g. site_tagline)" value={newKey} onChange={(e) => setNewKey(e.target.value)} className="border-[#2a2438] bg-[#0d0a17]" />
+            <Input placeholder="value" value={newValue} onChange={(e) => setNewValue(e.target.value)} className="border-[#2a2438] bg-[#0d0a17]" />
+            <Button
+              onClick={() => {
+                if (!newKey.trim()) return toast.error("Key required");
+                mutation.mutate({ key: newKey.trim(), value: newValue });
+                setNewKey(""); setNewValue("");
+              }}
+            >
+              Add
+            </Button>
+          </div>
+        </div>
+      </section>
+
+      <section className="rounded-xl border border-[#2a2438] bg-[#120e1e] p-6">
+        <div className="mb-4 flex items-center justify-between gap-3">
+          <LangTabs value={lang} onChange={setLang} />
+          <Button variant="secondary" onClick={() => saveAll(rows)}>Save all</Button>
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2">
+          {rows.map((s) => <Row key={s.key} s={s} label={s.key.slice(lang.length + 1)} />)}
         </div>
       </section>
     </div>
