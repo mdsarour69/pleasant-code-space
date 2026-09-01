@@ -11,6 +11,8 @@ export function TrialSection() {
     queryFn: () => getTranslations({ data: { lang: activeLang } }),
   });
 
+  const currency = t['currency_symbol'] || '৳';
+
   return (
     <section id="trial" className="trial-wrap flex justify-center p-[26px_20px_40px]">
       <div className="trial-card w-full max-w-[470px] p-[22px] border border-[#b83c5f] rounded-[28px] bg-linear-to-br from-[#3b211f] to-[#261724] shadow-[0_0_50px_rgba(255,89,47,0.14)]">
@@ -33,12 +35,12 @@ export function TrialSection() {
           <div className="p-3.5 border border-[#8e542d] rounded-[16px] bg-[#160e0d]">
             <b className="block text-[13px] text-white">{t['trial_30_text']}</b>
             <small className="block text-[9px] text-[#aaa]">{t['trial_access']}</small>
-            <em className="block not-italic text-[#ff4a9b] mt-[5px] font-bold">{t['trial_30_price']}</em>
+            <em className="block not-italic text-[#ff4a9b] mt-[5px] font-bold">{currency} {t['trial_30_price']}</em>
           </div>
           <div className="p-3.5 border border-[#8e542d] rounded-[16px] bg-[#160e0d]">
             <b className="block text-[13px] text-white">{t['trial_10_text']}</b>
             <small className="block text-[9px] text-[#aaa]">{t['trial_start']}</small>
-            <em className="block not-italic text-[#ff4a9b] mt-[5px] font-bold">{t['trial_10_price']}</em>
+            <em className="block not-italic text-[#ff4a9b] mt-[5px] font-bold">{currency} {t['trial_10_price']}</em>
           </div>
         </div>
         
