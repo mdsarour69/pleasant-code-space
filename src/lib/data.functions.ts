@@ -13,7 +13,7 @@ export const getTranslations = createServerFn({ method: "GET" })
     const { data, error } = await supabase
       .from("settings")
       .select("key, value")
-      .or(`key.like.${lang}.%,key.like.bn.%`);
+      .or(`key.like.${lang}.%,key.like.bn.%,key.not.like.%.%`);
 
     if (error) throw error;
 
