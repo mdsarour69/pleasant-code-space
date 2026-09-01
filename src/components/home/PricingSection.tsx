@@ -19,6 +19,8 @@ export function PricingSection() {
     queryFn: () => getPackages({ data: { lang: activeLang } }),
   });
 
+  const currency = t['currency_symbol'] || '৳';
+
   const handleOpenOrder = (id: string, name: string) => {
     setSelectedPackage({ id, name });
   };
