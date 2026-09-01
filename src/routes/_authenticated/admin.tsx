@@ -273,12 +273,15 @@ function SettingsTab({ settings }: { settings: Setting[] }) {
   return (
     <div className="space-y-8 text-white">
       <section className="p-6 border border-[#2a2438] bg-[#120e1e] rounded-xl">
-        <h2 className="text-lg font-semibold mb-4">Global Links</h2>
+        <h2 className="text-lg font-semibold mb-4">Global Links & Currency</h2>
         <div className="grid gap-4 sm:grid-cols-2">
           {globalLinks.map((s) => (
-             <div key={s.key} className="flex gap-2">
-               <Input value={drafts[s.key] ?? s.value} onChange={(e) => setDrafts({...drafts, [s.key]: e.target.value})} className="bg-[#0d0a17]" />
-               <Button onClick={() => mutation.mutate({key: s.key, value: drafts[s.key] ?? s.value})}>Save</Button>
+             <div key={s.key} className="space-y-1">
+               <label className="text-xs text-[#9b93ad]">{s.key}</label>
+               <div className="flex gap-2">
+                 <Input value={drafts[s.key] ?? s.value} onChange={(e) => setDrafts({...drafts, [s.key]: e.target.value})} className="bg-[#0d0a17]" />
+                 <Button onClick={() => mutation.mutate({key: s.key, value: drafts[s.key] ?? s.value})}>Save</Button>
+               </div>
              </div>
           ))}
         </div>
