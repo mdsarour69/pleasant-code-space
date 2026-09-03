@@ -74,8 +74,8 @@ function SiteContent() {
 
 function Index() {
   return (
-    <div className="min-h-screen bg-[#080512]">
-      <Suspense fallback={<div className="h-16 bg-[#080512]" />}>
+    <div className="min-h-screen bg-background">
+      <Suspense fallback={<div className="h-16 bg-background" />}>
         <Navbar />
       </Suspense>
       
