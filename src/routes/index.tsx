@@ -35,24 +35,26 @@ function SiteContent() {
 
   useEffect(() => {
     const root = document.documentElement;
-    root.style.setProperty("--primary", safeColor(settings.theme_primary, SITE_DEFAULTS.theme_primary));
-    root.style.setProperty("--background", safeColor(settings.theme_background, SITE_DEFAULTS.theme_background));
-    root.style.setProperty("--surface", safeColor(settings.theme_surface, SITE_DEFAULTS.theme_surface));
-    root.style.setProperty("--foreground", safeColor(settings.theme_foreground, SITE_DEFAULTS.theme_foreground));
-    root.style.setProperty("--muted-foreground", safeColor(settings.theme_muted, SITE_DEFAULTS.theme_muted));
-    root.style.setProperty("--border", safeColor(settings.theme_border, SITE_DEFAULTS.theme_border));
-    root.style.setProperty("--service-columns", ["2", "3", "4"].includes(settings.service_grid) ? settings.service_grid : "3");
-    root.style.setProperty("--package-columns", ["2", "3", "4"].includes(settings.package_grid) ? settings.package_grid : "3");
-    root.dataset.contentWidth = settings.content_width === "compact" ? "compact" : "wide";
-    root.dataset.density = settings.spacing_density === "compact" ? "compact" : "comfortable";
-    root.dataset.corners = settings.corner_style === "square" ? "square" : "soft";
-    root.dataset.buttonStyle = settings.button_style === "square" ? "square" : "pill";
+    root.style.setProperty("--primary", safeColor(settings["theme_primary"], SITE_DEFAULTS.theme_primary));
+    root.style.setProperty("--background", safeColor(settings["theme_background"], SITE_DEFAULTS.theme_background));
+    root.style.setProperty("--surface", safeColor(settings["theme_surface"], SITE_DEFAULTS.theme_surface));
+    root.style.setProperty("--foreground", safeColor(settings["theme_foreground"], SITE_DEFAULTS.theme_foreground));
+    root.style.setProperty("--muted-foreground", safeColor(settings["theme_muted"], SITE_DEFAULTS.theme_muted));
+    root.style.setProperty("--border", safeColor(settings["theme_border"], SITE_DEFAULTS.theme_border));
+    const serviceGrid = settings["service_grid"] ?? SITE_DEFAULTS.service_grid;
+    const packageGrid = settings["package_grid"] ?? SITE_DEFAULTS.package_grid;
+    root.style.setProperty("--service-columns", ["2", "3", "4"].includes(serviceGrid) ? serviceGrid : "3");
+    root.style.setProperty("--package-columns", ["2", "3", "4"].includes(packageGrid) ? packageGrid : "3");
+    root.dataset["contentWidth"] = settings["content_width"] === "compact" ? "compact" : "wide";
+    root.dataset["density"] = settings["spacing_density"] === "compact" ? "compact" : "comfortable";
+    root.dataset["corners"] = settings["corner_style"] === "square" ? "square" : "soft";
+    root.dataset["buttonStyle"] = settings["button_style"] === "square" ? "square" : "pill";
     return () => {
       for (const key of ["--primary", "--background", "--surface", "--foreground", "--muted-foreground", "--border", "--service-columns", "--package-columns"]) root.style.removeProperty(key);
-      delete root.dataset.contentWidth;
-      delete root.dataset.density;
-      delete root.dataset.corners;
-      delete root.dataset.buttonStyle;
+      delete root.dataset["contentWidth"];
+      delete root.dataset["density"];
+      delete root.dataset["corners"];
+      delete root.dataset["buttonStyle"];
     };
   }, [settings]);
 

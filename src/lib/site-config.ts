@@ -34,7 +34,7 @@ export function isEnabled(settings: SiteSettings, key: SiteSettingKey) {
 
 export function orderedSections(settings: SiteSettings) {
   const allowed = ["trial", "packages", "contact"] as const;
-  const requested = (settings.layout_sections ?? SITE_DEFAULTS.layout_sections).split(",");
+  const requested = (settings["layout_sections"] ?? SITE_DEFAULTS.layout_sections).split(",");
   return [...requested.filter((item): item is (typeof allowed)[number] => allowed.includes(item as (typeof allowed)[number])), ...allowed].filter(
     (item, index, all) => all.indexOf(item) === index,
   );
