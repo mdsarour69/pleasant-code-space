@@ -1,398 +1,178 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Button } from "@/components/ui/button";
-import { supabase } from "@/integrations/supabase/client";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { toast } from "sonner";
-import { useState } from "react";
-import { 
-  adminListAll, getMyRole, 
-  saveService, deleteService, deleteAllServices,
-  savePackage, deletePackage, deleteAllPackages,
-  updateOrderStatus, deleteOrder, deleteAllOrders,
-  saveSetting
-} from "@/lib/admin.functions";
-import { LayoutDashboard, ShoppingCart, Package, Settings, Star, Link2, Globe } from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
+import { BarChart3, Boxes, FileText, LayoutTemplate, LogOut, Package, Palette, Pencil, Plus, RefreshCw, Search, ShoppingCart, Trash2 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
+import {
+  adminListAll, deleteAllOrders, deleteAllPackages, deleteAllServices, deleteOrder, deletePackage, deleteService,
+  getMyRole, savePackage, saveService, saveSettings, updateOrderStatus,
+} from "@/lib/admin.functions";
+import { SITE_DEFAULTS } from "@/lib/site-config";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
-// Types
+export const Route = createFileRoute("/_authenticated/admin")({
+  head: () => ({ meta: [
+    { title: "Admin Panel — ITFair" },
+    { name: "description", content: "Manage ITFair content, orders, structure and theme." },
+    { property: "og:title", content: "Admin Panel — ITFair" },
+    { property: "og:description", content: "Secure ITFair website management panel." },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary" },
+    { name: "robots", content: "noindex" },
+  ]}),
+  component: AdminPage,
+});
+
 type Order = Tables<"orders">;
 type Service = Tables<"services">;
 type Pkg = Tables<"packages">;
 type Setting = Tables<"settings">;
-
-// Constants & Helpers
-const LANGS = [
-  { code: "bn", label: "বাংলা" },
-  { code: "en", label: "English" },
-  { code: "ar", label: "العربية" },
-  { code: "fr", label: "Français" },
-  { code: "pt", label: "Português" },
-] as const;
-type LangCode = (typeof LANGS)[number]["code"];
-function langField(base: string, lang: LangCode) { return lang === "bn" ? base : `${base}_${lang}`; }
-
-export const Route = createFileRoute("/_authenticated/admin")({
-  head: () => ({
-    meta: [
-      { title: "Admin Panel — ITFair" },
-      { name: "description", content: "Manage ITFair services, packages, orders and translations." },
-      { name: "robots", content: "noindex" },
-    ],
-  }),
-  component: AdminPage,
-});
-
-function Field({ label, value, onChange, textarea, type = "text" }: any) {
-  return (
-    <div className="space-y-1.5">
-      <Label className="text-xs text-[#9b93ad]">{label}</Label>
-      {textarea ? (
-        <Textarea value={value} onChange={(e) => onChange(e.target.value)} className="border-[#2a2438] bg-[#0d0a17] text-white" />
-      ) : (
-        <Input type={type} value={value} onChange={(e) => onChange(e.target.value)} className="border-[#2a2438] bg-[#0d0a17] text-white" />
-      )}
-    </div>
-  );
-}
-
-function LangTabs({ value, onChange }: { value: LangCode; onChange: (l: LangCode) => void }) {
-  return (
-    <div className="flex flex-wrap gap-1.5">
-      {LANGS.map((l) => (
-        <button key={l.code} type="button" onClick={() => onChange(l.code)} className={`rounded-full px-3 py-1 text-xs transition-colors ${value === l.code ? "bg-[#ff3b9d] text-white" : "border border-[#2a2438] text-[#9b93ad] hover:text-white"}`}>
-          {l.label}
-        </button>
-      ))}
-    </div>
-  );
-}
+type AdminData = { orders: Order[]; services: Service[]; packages: Pkg[]; settings: Setting[] };
+type LangCode = "bn" | "en" | "ar" | "fr" | "pt";
+const LANGS: { code: LangCode; label: string }[] = [
+  { code: "bn", label: "বাংলা" }, { code: "en", label: "English" }, { code: "ar", label: "العربية" },
+  { code: "fr", label: "Français" }, { code: "pt", label: "Português" },
+];
+const inputClass = "border-border bg-background text-foreground";
+const panelClass = "rounded-md border border-border bg-surface p-4 sm:p-5";
+const errorMessage = (error: unknown) => error instanceof Error ? error.message : "Request failed. Please try again.";
+const fieldKey = (base: string, lang: LangCode) => lang === "bn" ? base : `${base}_${lang}`;
 
 function AdminPage() {
-  const navigate = useNavigate();
-  const queryClient = useQueryClient();
+  const navigate = useNavigate({ from: "/admin" });
+  const qc = useQueryClient();
   const fetchRole = useServerFn(getMyRole);
   const fetchData = useServerFn(adminListAll);
-  
-  const roleQuery = useQuery({ queryKey: ["my-role"], queryFn: () => fetchRole({}) });
-  const dataQuery = useQuery({
-    queryKey: ["admin-data"],
-    queryFn: () => fetchData({}),
-    enabled: roleQuery.data?.isAdmin === true,
-  });
+  const [sessionReady, setSessionReady] = useState(false);
+  const [hasSession, setHasSession] = useState(false);
 
-  if (roleQuery.isLoading || (roleQuery.data?.isAdmin && !dataQuery.data)) return <main className="min-h-screen bg-[#080512] px-4 py-8"><p className="text-sm text-[#9b93ad]">Loading...</p></main>;
+  useEffect(() => {
+    let active = true;
+    void supabase.auth.getSession().then(({ data }) => {
+      if (!active) return;
+      setHasSession(Boolean(data.session));
+      setSessionReady(true);
+    });
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      setHasSession(Boolean(session));
+      setSessionReady(true);
+      if (!session) void navigate({ to: "/auth", replace: true });
+    });
+    return () => { active = false; listener.subscription.unsubscribe(); };
+  }, [navigate]);
 
-  if (!roleQuery.data?.isAdmin) return (
-    <main className="min-h-screen bg-[#080512] px-4 py-8">
-      <div className="rounded-xl border border-[#2a2438] bg-[#120e1e] p-6 text-white">
-        <h2 className="font-semibold">No admin access</h2>
-      </div>
-    </main>
-  );
+  const roleQuery = useQuery({ queryKey: ["my-role"], queryFn: () => fetchRole({}), enabled: sessionReady && hasSession, retry: 1, staleTime: 60_000 });
+  const dataQuery = useQuery({ queryKey: ["admin-data"], queryFn: () => fetchData({}), enabled: roleQuery.data?.isAdmin === true, retry: 1, staleTime: 15_000 });
 
-  const { orders, services, packages, settings } = dataQuery.data!;
+  const retry = async () => { await qc.invalidateQueries({ queryKey: ["my-role"] }); await qc.invalidateQueries({ queryKey: ["admin-data"] }); };
+  if (!sessionReady || roleQuery.isPending || (roleQuery.data?.isAdmin && dataQuery.isPending)) return <StatusScreen title="Opening admin panel" detail="Checking your session and loading the latest website data…" />;
+  if (!hasSession) return <StatusScreen title="Session expired" detail="Sign in again to continue." action={<Button asChild><Link to="/auth">Sign in</Link></Button>} />;
+  if (roleQuery.isError || dataQuery.isError) return <StatusScreen title="Admin panel could not load" detail={errorMessage(roleQuery.error ?? dataQuery.error)} action={<div className="flex gap-2"><Button onClick={() => void retry()}><RefreshCw />Retry</Button><Button variant="outline" onClick={() => void supabase.auth.signOut()}>Sign in again</Button></div>} />;
+  if (!roleQuery.data?.isAdmin) return <StatusScreen title="No admin access" detail="This account does not have permission to manage the website." action={<Button variant="outline" onClick={() => void supabase.auth.signOut()}>Sign out</Button>} />;
+  if (!dataQuery.data) return <StatusScreen title="No website data" detail="Retry loading the management data." action={<Button onClick={() => void retry()}><RefreshCw />Retry</Button>} />;
 
+  const data: AdminData = dataQuery.data;
   return (
-    <main className="min-h-screen bg-[#080512] px-4 py-8">
-      <div className="mx-auto max-w-5xl">
-        <header className="mb-8 flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-white">ITFair Admin</h1>
-          </div>
-          <div className="flex gap-2">
-            <Button variant="secondary" onClick={() => navigate({ to: "/" })}>View site</Button>
-            <Button variant="ghost" onClick={() => supabase.auth.signOut().then(() => navigate({ to: "/auth" }))}>Sign out</Button>
-          </div>
+    <main className="min-h-screen bg-background px-3 py-4 text-foreground sm:px-6 sm:py-6">
+      <div className="mx-auto max-w-6xl">
+        <header className="mb-5 flex flex-wrap items-center justify-between gap-3 border-b border-border pb-4">
+          <div><p className="text-xs font-medium text-primary">WEBSITE CONTROL CENTER</p><h1 className="text-2xl font-bold">ITFair Admin</h1></div>
+          <div className="flex gap-2"><Button variant="outline" asChild><Link to="/">View site</Link></Button><Button variant="ghost" onClick={() => void supabase.auth.signOut()}><LogOut />Sign out</Button></div>
         </header>
-
         <Tabs defaultValue="dashboard">
-          <TabsList className="mb-6 bg-[#120e1e]">
-            <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
-            <TabsTrigger value="orders">Orders</TabsTrigger>
-            <TabsTrigger value="services">Services</TabsTrigger>
-            <TabsTrigger value="packages">Packages</TabsTrigger>
-            <TabsTrigger value="settings">Site text</TabsTrigger>
+          <TabsList className="mb-5 flex h-auto w-full justify-start gap-1 overflow-x-auto bg-surface p-1.5">
+            <AdminTab value="dashboard" icon={<BarChart3 />}>Dashboard</AdminTab><AdminTab value="orders" icon={<ShoppingCart />}>Orders</AdminTab>
+            <AdminTab value="services" icon={<Boxes />}>Services</AdminTab><AdminTab value="packages" icon={<Package />}>Packages</AdminTab>
+            <AdminTab value="content" icon={<FileText />}>Content</AdminTab><AdminTab value="structure" icon={<LayoutTemplate />}>Structure</AdminTab><AdminTab value="theme" icon={<Palette />}>Theme</AdminTab>
           </TabsList>
-          
-          <TabsContent value="dashboard"><DashboardTab orders={orders} services={services} packages={packages} /></TabsContent>
-          <TabsContent value="orders"><OrdersTab orders={orders} /></TabsContent>
-          <TabsContent value="services"><ServicesTab services={services} /></TabsContent>
-          <TabsContent value="packages"><PackagesTab packages={packages} /></TabsContent>
-          <TabsContent value="settings"><SettingsTab settings={settings} /></TabsContent>
+          <TabsContent value="dashboard"><Dashboard data={data} /></TabsContent>
+          <TabsContent value="orders"><OrdersTab orders={data.orders} /></TabsContent>
+          <TabsContent value="services"><ServicesTab services={data.services} /></TabsContent>
+          <TabsContent value="packages"><PackagesTab packages={data.packages} /></TabsContent>
+          <TabsContent value="content"><ContentTab settings={data.settings} /></TabsContent>
+          <TabsContent value="structure"><StructureTab settings={data.settings} /></TabsContent>
+          <TabsContent value="theme"><ThemeTab settings={data.settings} /></TabsContent>
         </Tabs>
       </div>
     </main>
   );
 }
 
-function DashboardTab({ orders, services, packages }: any) {
-  const stats = [
-    { label: "Total Orders", value: orders.length, icon: ShoppingCart, color: "text-blue-400" },
-    { label: "Pending", value: orders.filter((o:any) => o.status === "pending").length, icon: Star, color: "text-yellow-400" },
-    { label: "Active Services", value: services.filter((s:any) => s.active).length, icon: LayoutDashboard, color: "text-pink-400" },
-    { label: "Active Packages", value: packages.filter((p:any) => p.active).length, icon: Package, color: "text-purple-400" },
-  ];
-  return (
-    <div className="space-y-6">
-      <div className="grid gap-4 sm:grid-cols-4">
-        {stats.map((s) => (
-          <div key={s.label} className="rounded-xl border border-[#2a2438] bg-[#120e1e] p-4 text-white">
-            <div className="flex items-center gap-3">
-              <s.icon size={20} className={s.color} />
-              <div><p className="text-xs text-[#9b93ad]">{s.label}</p><p className="text-xl font-bold">{s.value}</p></div>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
+function AdminTab({ value, icon, children }: { value: string; icon: ReactNode; children: ReactNode }) { return <TabsTrigger value={value} className="gap-1.5 [&_svg]:size-3.5">{icon}{children}</TabsTrigger>; }
+function StatusScreen({ title, detail, action }: { title: string; detail: string; action?: ReactNode }) { return <main className="flex min-h-screen items-center justify-center bg-background p-4 text-foreground"><div className="w-full max-w-md rounded-md border border-border bg-surface p-6"><h1 className="text-xl font-semibold">{title}</h1><p className="mt-2 text-sm text-muted-foreground">{detail}</p>{action ? <div className="mt-5">{action}</div> : <div className="mt-5 h-1 overflow-hidden rounded bg-border"><div className="h-full w-1/2 animate-pulse bg-primary" /></div>}</div></main>; }
+function Dashboard({ data }: { data: AdminData }) { const stats = [["Orders", data.orders.length], ["Pending", data.orders.filter(o => o.status === "pending").length], ["Active services", data.services.filter(s => s.active).length], ["Active packages", data.packages.filter(p => p.active).length]]; return <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">{stats.map(([label, value]) => <div className={panelClass} key={label}><p className="text-sm text-muted-foreground">{label}</p><p className="mt-2 text-3xl font-bold">{value}</p></div>)}</div>; }
+
+function ConfirmAction({ title, description, children, onConfirm, disabled }: { title: string; description: string; children: ReactNode; onConfirm: () => void; disabled?: boolean }) { return <AlertDialog><AlertDialogTrigger asChild>{children}</AlertDialogTrigger><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>{title}</AlertDialogTitle><AlertDialogDescription>{description}</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction disabled={disabled} onClick={onConfirm}>Confirm</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog>; }
 
 function OrdersTab({ orders }: { orders: Order[] }) {
-  const qc = useQueryClient();
-  const deleteOrderFn = useServerFn(deleteOrder);
-  const deleteAllFn = useServerFn(deleteAllOrders);
-  
-  const delMutation = useMutation({ mutationFn: (id:string) => deleteOrderFn({data:{id}}), onSuccess: () => qc.invalidateQueries({queryKey:["admin-data"]}) });
-  const delAllMutation = useMutation({ mutationFn: () => deleteAllFn({}), onSuccess: () => qc.invalidateQueries({queryKey:["admin-data"]}) });
-
-  return (
-    <div className="space-y-4">
-      <div className="flex justify-between">
-        <h2 className="text-white font-semibold">Orders ({orders.length})</h2>
-        <Button variant="destructive" size="sm" onClick={() => delAllMutation.mutate()}>Delete All</Button>
-      </div>
-      {orders.map((o) => (
-        <div key={o.id} className="rounded-lg border border-[#2a2438] bg-[#120e1e] p-4 text-white flex justify-between">
-          <div><p className="font-bold">{o.customer_name}</p><p className="text-sm text-[#9b93ad]">{o.phone}</p></div>
-          <div className="flex gap-2">
-            <Button size="sm" variant="ghost" onClick={() => delMutation.mutate(o.id)}>Delete</Button>
-          </div>
-        </div>
-      ))}
-    </div>
-  );
+  const qc = useQueryClient(); const remove = useServerFn(deleteOrder); const removeAll = useServerFn(deleteAllOrders); const update = useServerFn(updateOrderStatus); const [filter, setFilter] = useState("all");
+  const settle = () => qc.invalidateQueries({ queryKey: ["admin-data"] }); const fail = (e: unknown) => toast.error(errorMessage(e));
+  const del = useMutation({ mutationFn: (id: string) => remove({ data: { id } }), onSuccess: () => { toast.success("Order deleted"); void settle(); }, onError: fail });
+  const delAll = useMutation({ mutationFn: () => removeAll({}), onSuccess: () => { toast.success("All orders deleted"); void settle(); }, onError: fail });
+  const status = useMutation({ mutationFn: ({ id, value }: { id: string; value: "pending" | "confirmed" | "done" | "cancelled" }) => update({ data: { id, status: value } }), onSuccess: () => { toast.success("Status updated"); void settle(); }, onError: fail });
+  const visible = filter === "all" ? orders : orders.filter(o => o.status === filter);
+  return <section className="space-y-4"><Toolbar title={`Orders (${orders.length})`}><Select value={filter} onValueChange={setFilter}><SelectTrigger className="w-36"><SelectValue /></SelectTrigger><SelectContent>{["all","pending","confirmed","done","cancelled"].map(v => <SelectItem key={v} value={v}>{v}</SelectItem>)}</SelectContent></Select><ConfirmAction title="Delete all orders?" description="This cannot be undone." onConfirm={() => delAll.mutate()} disabled={delAll.isPending}><Button variant="destructive" disabled={!orders.length || delAll.isPending}><Trash2 />Delete all</Button></ConfirmAction></Toolbar>
+    <div className="space-y-3">{visible.map(o => <article key={o.id} className={`${panelClass} flex flex-col justify-between gap-4 md:flex-row md:items-center`}><div><p className="font-semibold">{o.customer_name}</p><p className="text-sm text-muted-foreground">{o.phone}{o.note ? ` · ${o.note}` : ""}</p><p className="mt-1 text-xs text-muted-foreground">{o.created_at ? new Date(o.created_at).toLocaleString() : ""}</p></div><div className="flex items-center gap-2"><Select value={o.status ?? "pending"} onValueChange={value => status.mutate({ id: o.id, value: value as "pending" | "confirmed" | "done" | "cancelled" })}><SelectTrigger className="w-36"><SelectValue /></SelectTrigger><SelectContent>{["pending","confirmed","done","cancelled"].map(v => <SelectItem key={v} value={v}>{v}</SelectItem>)}</SelectContent></Select><ConfirmAction title="Delete this order?" description="This order will be permanently removed." onConfirm={() => del.mutate(o.id)}><Button size="icon" variant="ghost" aria-label="Delete order"><Trash2 /></Button></ConfirmAction></div></article>)}{!visible.length && <Empty text="No orders in this view." />}</div></section>;
 }
 
 function ServicesTab({ services }: { services: Service[] }) {
-  const qc = useQueryClient();
-  const save = useServerFn(saveService);
-  const remove = useServerFn(deleteService);
-  const removeAll = useServerFn(deleteAllServices);
-  const [open, setOpen] = useState(false);
-  const [form, setForm] = useState<any>({ icon: "🚀", active: true, title: "" });
-  const [lang, setLang] = useState<LangCode>("bn");
-
-  const saveMut = useMutation({ mutationFn: (d:any) => save({data:d}), onSuccess: () => { setOpen(false); qc.invalidateQueries({queryKey:["admin-data"]}); } });
-  const delMut = useMutation({ mutationFn: (id:string) => remove({data:{id}}), onSuccess: () => qc.invalidateQueries({queryKey:["admin-data"]}) });
-  const delAllMut = useMutation({ mutationFn: () => removeAll({}), onSuccess: () => qc.invalidateQueries({queryKey:["admin-data"]}) });
-
-  return (
-    <div className="space-y-4">
-      <div className="flex justify-between">
-        <Button onClick={() => setOpen(true)}>Add service</Button>
-        <Button variant="destructive" size="sm" onClick={() => delAllMut.mutate()}>Delete All</Button>
-      </div>
-      <div className="grid gap-4 sm:grid-cols-2">
-        {services.map((s) => (
-          <div key={s.id} className="rounded-xl border border-[#2a2438] bg-[#120e1e] p-4 text-white flex justify-between">
-             <p>{s.title}</p>
-             <Button variant="ghost" onClick={() => delMut.mutate(s.id)}>Delete</Button>
-          </div>
-        ))}
-      </div>
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="bg-[#120e1e] border-[#2a2438] text-white">
-          <DialogHeader><DialogTitle>Edit Service</DialogTitle></DialogHeader>
-          <LangTabs value={lang} onChange={setLang} />
-          <Field label="Title" value={form[langField("title", lang)]} onChange={(v:any) => setForm({...form, [langField("title", lang)]: v})} />
-          <Button onClick={() => saveMut.mutate(form)}>Save</Button>
-        </DialogContent>
-      </Dialog>
-    </div>
-  );
+  const qc = useQueryClient(); const saveFn = useServerFn(saveService); const deleteFn = useServerFn(deleteService); const deleteAllFn = useServerFn(deleteAllServices); const [form, setForm] = useState<Partial<Service> | null>(null); const [lang, setLang] = useState<LangCode>("bn");
+  const refresh = () => qc.invalidateQueries({ queryKey: ["admin-data"] }); const fail = (e: unknown) => toast.error(errorMessage(e));
+  const save = useMutation({ mutationFn: (value: Record<string, unknown>) => saveFn({ data: value as never }), onSuccess: () => { toast.success("Service saved"); setForm(null); void refresh(); }, onError: fail });
+  const del = useMutation({ mutationFn: (id: string) => deleteFn({ data: { id } }), onSuccess: () => { toast.success("Service deleted"); void refresh(); }, onError: fail });
+  const delAll = useMutation({ mutationFn: () => deleteAllFn({}), onSuccess: () => { toast.success("All services deleted"); void refresh(); }, onError: fail });
+  const submit = () => { if (!form?.title?.trim()) { toast.error("Bengali/default title is required"); return; } save.mutate({ id: form.id, icon: form.icon ?? "", gradient: form.gradient ?? "pink", active: form.active ?? true, sort_order: form.sort_order ?? 0, title: form.title, description: form.description ?? "", title_en: form.title_en ?? "", title_ar: form.title_ar ?? "", title_fr: form.title_fr ?? "", title_pt: form.title_pt ?? "", description_en: form.description_en ?? "", description_ar: form.description_ar ?? "", description_fr: form.description_fr ?? "", description_pt: form.description_pt ?? "" }); };
+  return <section className="space-y-4"><Toolbar title={`Services (${services.length})`}><Button onClick={() => setForm({ icon: "🚀", gradient: "pink", active: true, sort_order: services.length, title: "" })}><Plus />Add service</Button><ConfirmAction title="Delete all services?" description="Every service will be removed." onConfirm={() => delAll.mutate()}><Button variant="destructive" disabled={!services.length}><Trash2 />Delete all</Button></ConfirmAction></Toolbar><div className="grid gap-3 sm:grid-cols-2">{services.map(s => <EntityCard key={s.id} title={`${s.icon ?? ""} ${s.title}`} subtitle={`${s.active ? "Active" : "Hidden"} · Order ${s.sort_order ?? 0}`} onEdit={() => setForm(s)} onDelete={() => del.mutate(s.id)} />)}</div>{!services.length && <Empty text="No services yet." />}
+    <EntityDialog open={Boolean(form)} title={form?.id ? "Edit service" : "Add service"} onClose={() => setForm(null)} onSave={submit} saving={save.isPending}>{form && <><LangPicker value={lang} onChange={setLang} /><Field label="Title" value={String(form[fieldKey("title", lang) as keyof Service] ?? "")} onChange={v => setForm({ ...form, [fieldKey("title", lang)]: v })} /><Field label="Description" textarea value={String(form[fieldKey("description", lang) as keyof Service] ?? "")} onChange={v => setForm({ ...form, [fieldKey("description", lang)]: v })} /><div className="grid grid-cols-2 gap-3"><Field label="Icon" value={form.icon ?? ""} onChange={v => setForm({ ...form, icon: v })} /><Field label="Display order" type="number" value={String(form.sort_order ?? 0)} onChange={v => setForm({ ...form, sort_order: Number(v) })} /></div><Choice label="Gradient" value={form.gradient ?? "pink"} onChange={v => setForm({ ...form, gradient: v })} options={["pink","purple","blue"]} /><Toggle label="Visible on website" checked={form.active ?? true} onChange={active => setForm({ ...form, active })} /></>}</EntityDialog>
+  </section>;
 }
 
 function PackagesTab({ packages }: { packages: Pkg[] }) {
-  const qc = useQueryClient();
-  const save = useServerFn(savePackage);
-  const remove = useServerFn(deletePackage);
-  const removeAll = useServerFn(deleteAllPackages);
-  const [open, setOpen] = useState(false);
-  const [form, setForm] = useState<any>({ price: 0, active: true, name: "" });
-  const [lang, setLang] = useState<LangCode>("bn");
-  
-  const saveMut = useMutation({ mutationFn: (d:any) => save({data:d}), onSuccess: () => { setOpen(false); qc.invalidateQueries({queryKey:["admin-data"]}); } });
-  const delMut = useMutation({ mutationFn: (id:string) => remove({data:{id}}), onSuccess: () => qc.invalidateQueries({queryKey:["admin-data"]}) });
-  const delAllMut = useMutation({ mutationFn: () => removeAll({}), onSuccess: () => qc.invalidateQueries({queryKey:["admin-data"]}) });
-
-  return (
-    <div className="space-y-4">
-      <div className="flex justify-between">
-        <Button onClick={() => setOpen(true)}>Add package</Button>
-        <Button variant="destructive" size="sm" onClick={() => delAllMut.mutate()}>Delete All</Button>
-      </div>
-      <div className="grid gap-4 sm:grid-cols-2">
-        {packages.map((p) => (
-          <div key={p.id} className="rounded-xl border border-[#2a2438] bg-[#120e1e] p-4 text-white flex justify-between">
-            <p>{p.name}</p>
-            <Button variant="ghost" onClick={() => delMut.mutate(p.id)}>Delete</Button>
-          </div>
-        ))}
-      </div>
-       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="bg-[#120e1e] border-[#2a2438] text-white">
-          <DialogHeader><DialogTitle>Edit Package</DialogTitle></DialogHeader>
-          <LangTabs value={lang} onChange={setLang} />
-          <Field label="Name" value={form[langField("name", lang)]} onChange={(v:any) => setForm({...form, [langField("name", lang)]: v})} />
-          <Field label="Price" type="number" value={form.price} onChange={(v:any) => setForm({...form, price: Number(v)})} />
-          <Button onClick={() => saveMut.mutate(form)}>Save</Button>
-        </DialogContent>
-      </Dialog>
-    </div>
-  );
+  const qc = useQueryClient(); const saveFn = useServerFn(savePackage); const deleteFn = useServerFn(deletePackage); const deleteAllFn = useServerFn(deleteAllPackages); const [form, setForm] = useState<Partial<Pkg> | null>(null); const [lang, setLang] = useState<LangCode>("bn");
+  const refresh = () => qc.invalidateQueries({ queryKey: ["admin-data"] }); const fail = (e: unknown) => toast.error(errorMessage(e));
+  const save = useMutation({ mutationFn: (value: Record<string, unknown>) => saveFn({ data: value as never }), onSuccess: () => { toast.success("Package saved"); setForm(null); void refresh(); }, onError: fail });
+  const del = useMutation({ mutationFn: (id: string) => deleteFn({ data: { id } }), onSuccess: () => { toast.success("Package deleted"); void refresh(); }, onError: fail }); const delAll = useMutation({ mutationFn: () => deleteAllFn({}), onSuccess: () => { toast.success("All packages deleted"); void refresh(); }, onError: fail });
+  const submit = () => { if (!form?.name?.trim()) { toast.error("Bengali/default name is required"); return; } save.mutate({ id: form.id, price: form.price ?? 0, old_price: form.old_price ?? 0, active: form.active ?? true, sort_order: form.sort_order ?? 0, name: form.name, duration: form.duration ?? "", badge: form.badge ?? "", type: form.type ?? "", description: form.description ?? "", button: form.button ?? "BUY NOW", name_en: form.name_en ?? "", name_ar: form.name_ar ?? "", name_fr: form.name_fr ?? "", name_pt: form.name_pt ?? "", duration_en: form.duration_en ?? "", duration_ar: form.duration_ar ?? "", duration_fr: form.duration_fr ?? "", duration_pt: form.duration_pt ?? "", badge_en: form.badge_en ?? "", badge_ar: form.badge_ar ?? "", badge_fr: form.badge_fr ?? "", badge_pt: form.badge_pt ?? "", type_en: form.type_en ?? "", type_ar: form.type_ar ?? "", type_fr: form.type_fr ?? "", type_pt: form.type_pt ?? "", description_en: form.description_en ?? "", description_ar: form.description_ar ?? "", description_fr: form.description_fr ?? "", description_pt: form.description_pt ?? "" }); };
+  return <section className="space-y-4"><Toolbar title={`Packages (${packages.length})`}><Button onClick={() => setForm({ name: "", price: 0, old_price: 0, active: true, sort_order: packages.length, button: "BUY NOW" })}><Plus />Add package</Button><ConfirmAction title="Delete all packages?" description="Every package will be removed." onConfirm={() => delAll.mutate()}><Button variant="destructive" disabled={!packages.length}><Trash2 />Delete all</Button></ConfirmAction></Toolbar><div className="grid gap-3 sm:grid-cols-2">{packages.map(p => <EntityCard key={p.id} title={p.name} subtitle={`${p.price} · ${p.active ? "Active" : "Hidden"} · Order ${p.sort_order ?? 0}`} onEdit={() => setForm(p)} onDelete={() => del.mutate(p.id)} />)}</div>{!packages.length && <Empty text="No packages yet." />}
+    <EntityDialog open={Boolean(form)} title={form?.id ? "Edit package" : "Add package"} onClose={() => setForm(null)} onSave={submit} saving={save.isPending}>{form && <><LangPicker value={lang} onChange={setLang} />{["name","duration","badge","type","description"].map(base => <Field key={base} label={base} textarea={base === "description"} value={String(form[fieldKey(base, lang) as keyof Pkg] ?? "")} onChange={v => setForm({ ...form, [fieldKey(base, lang)]: v })} />)}<div className="grid grid-cols-2 gap-3"><Field label="Price" type="number" value={String(form.price ?? 0)} onChange={v => setForm({ ...form, price: Number(v) })} /><Field label="Old price" type="number" value={String(form.old_price ?? 0)} onChange={v => setForm({ ...form, old_price: Number(v) })} /></div><div className="grid grid-cols-2 gap-3"><Field label="Button text" value={form.button ?? ""} onChange={v => setForm({ ...form, button: v })} /><Field label="Display order" type="number" value={String(form.sort_order ?? 0)} onChange={v => setForm({ ...form, sort_order: Number(v) })} /></div><Toggle label="Visible on website" checked={form.active ?? true} onChange={active => setForm({ ...form, active })} /></>}</EntityDialog>
+  </section>;
 }
 
-const CURRENCIES = [
-  { symbol: "৳", label: "Taka (৳)" },
-  { symbol: "$", label: "Dollar ($)" },
-  { symbol: "€", label: "Euro (€)" },
-  { symbol: "£", label: "Pound (£)" },
-  { symbol: "₹", label: "Rupee (₹)" },
-  { symbol: "﷼", label: "Riyal (﷼)" },
+function ContentTab({ settings }: { settings: Setting[] }) {
+  const [lang, setLang] = useState<LangCode>("bn"); const [search, setSearch] = useState("");
+  const rows = settings.filter(s => s.key.startsWith(`${lang}.`) && s.key.toLowerCase().includes(search.toLowerCase())); const globals = settings.filter(s => !s.key.includes(".") && !s.key.startsWith("theme_") && !s.key.startsWith("show_") && !["layout_sections","service_grid","package_grid","content_width","spacing_density","corner_style","font_preset","button_style"].includes(s.key) && s.key.toLowerCase().includes(search.toLowerCase()));
+  return <section className="space-y-4"><Toolbar title="Website content"><div className="relative"><Search className="absolute left-3 top-2.5 size-4 text-muted-foreground"/><Input className={`${inputClass} pl-9`} placeholder="Search settings" value={search} onChange={e => setSearch(e.target.value)} /></div></Toolbar><SettingsEditor title="Brand, links & global values" rows={globals} /><div className={panelClass}><LangPicker value={lang} onChange={setLang} /></div><SettingsEditor title={`${LANGS.find(l => l.code === lang)?.label} content`} rows={rows} labelPrefix={`${lang}.`} /></section>;
+}
+
+const STRUCTURE_FIELDS = [
+  { key: "layout_sections", label: "Section order", options: ["services,trial,packages,contact","services,packages,trial,contact","services,packages,contact,trial"] },
+  { key: "service_grid", label: "Service columns", options: ["2","3","4"] }, { key: "package_grid", label: "Package columns", options: ["2","3","4"] },
+  { key: "content_width", label: "Content width", options: ["compact","wide"] }, { key: "spacing_density", label: "Spacing", options: ["compact","comfortable"] },
+  { key: "corner_style", label: "Corners", options: ["square","soft"] }, { key: "font_preset", label: "Font", options: ["regional","system"] }, { key: "button_style", label: "Buttons", options: ["square","pill"] },
 ];
+function StructureTab({ settings }: { settings: Setting[] }) { const current = useMemo(() => Object.fromEntries(settings.map(s => [s.key, s.value])), [settings]); const initial = Object.fromEntries(Object.entries(SITE_DEFAULTS).filter(([k]) => k.startsWith("show_") || STRUCTURE_FIELDS.some(f => f.key === k)).map(([k,v]) => [k,current[k] ?? v])); const [draft, setDraft] = useState<Record<string,string>>(initial); return <SettingsBatch title="Safe website structure" values={draft} setValues={setDraft} reset={initial}><p className="text-sm text-muted-foreground">Show, hide and reorder sections using safe presets.</p><div className="grid gap-3 sm:grid-cols-2">{["services","trial","packages","contact"].map(name => <Toggle key={name} label={`Show ${name}`} checked={draft[`show_${name}`] !== "false"} onChange={v => setDraft({...draft,[`show_${name}`]:String(v)})} />)}{STRUCTURE_FIELDS.map(field => <Choice key={field.key} label={field.label} value={draft[field.key] ?? ""} options={field.options} onChange={v => setDraft({...draft,[field.key]:v})} />)}</div></SettingsBatch>; }
+const COLORS = [{key:"theme_primary",label:"Primary"},{key:"theme_background",label:"Background"},{key:"theme_surface",label:"Surface"},{key:"theme_foreground",label:"Text"},{key:"theme_muted",label:"Muted text"},{key:"theme_border",label:"Border"}];
+function ThemeTab({ settings }: { settings: Setting[] }) { const current = useMemo(() => Object.fromEntries(settings.map(s => [s.key, s.value])), [settings]); const initial = Object.fromEntries(COLORS.map(({key}) => [key,current[key] ?? SITE_DEFAULTS[key as keyof typeof SITE_DEFAULTS]])); const defaults = Object.fromEntries(COLORS.map(({key}) => [key,SITE_DEFAULTS[key as keyof typeof SITE_DEFAULTS]])); const [draft,setDraft] = useState<Record<string,string>>(initial); return <SettingsBatch title="Global theme" values={draft} setValues={setDraft} reset={defaults}><p className="text-sm text-muted-foreground">One theme updates the whole public website.</p><div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">{COLORS.map(c => <label key={c.key} className="space-y-2"><span className="text-sm font-medium">{c.label}</span><div className="flex gap-2"><Input type="color" className="h-10 w-14 border-border bg-background p-1" value={draft[c.key]} onChange={e => setDraft({...draft,[c.key]:e.target.value})}/><Input className={inputClass} value={draft[c.key]} onChange={e => setDraft({...draft,[c.key]:e.target.value})}/></div></label>)}</div></SettingsBatch>; }
 
-function SettingsTab({ settings }: { settings: Setting[] }) {
-  const qc = useQueryClient();
-  const save = useServerFn(saveSetting);
-  const [lang, setLang] = useState<LangCode>("bn");
-  const [drafts, setDrafts] = useState<Record<string, string>>({});
-  const [search, setSearch] = useState("");
-  const [newKey, setNewKey] = useState("");
-  const [newValue, setNewValue] = useState("");
-  const [savingKey, setSavingKey] = useState<string | null>(null);
+function SettingsEditor({ title, rows, labelPrefix = "" }: { title: string; rows: Setting[]; labelPrefix?: string }) { const [draft,setDraft] = useState<Record<string,string>>({}); const values = Object.fromEntries(rows.map(s => [s.key,draft[s.key] ?? s.value])); return <SettingsBatch title={title} values={values} setValues={next => setDraft({...draft,...next})} reset={Object.fromEntries(rows.map(s => [s.key,s.value]))}><div className="grid gap-3 sm:grid-cols-2">{rows.map(s => <Field key={s.key} label={s.key.slice(labelPrefix.length).replaceAll("_"," ")} value={draft[s.key] ?? s.value} onChange={v => setDraft({...draft,[s.key]:v})} />)}</div>{!rows.length && <Empty text="No matching settings." />}</SettingsBatch>; }
+function SettingsBatch({ title, values, setValues, reset, children }: { title: string; values: Record<string,string>; setValues: (v: Record<string,string>) => void; reset: Record<string,string>; children: ReactNode }) { const qc = useQueryClient(); const saveFn = useServerFn(saveSettings); const save = useMutation({ mutationFn: () => saveFn({data:{settings:Object.entries(values).map(([key,value]) => ({key,value}))}}), onSuccess: () => { toast.success("Settings saved"); void qc.invalidateQueries({queryKey:["admin-data"]}); void qc.invalidateQueries({queryKey:["translations"]}); }, onError: e => toast.error(errorMessage(e)) }); return <section className={panelClass}><div className="mb-4 flex flex-wrap items-center justify-between gap-3"><h2 className="text-lg font-semibold">{title}</h2><div className="flex gap-2"><Button variant="outline" onClick={() => setValues(reset)}>Reset</Button><Button disabled={save.isPending || !Object.keys(values).length} onClick={() => save.mutate()}>{save.isPending ? "Saving…" : "Save all"}</Button></div></div><div className="space-y-4">{children}</div></section>; }
 
-  const mutation = useMutation({
-    mutationFn: (v: { key: string; value: string }) => save({ data: v }),
-    onMutate: (v) => setSavingKey(v.key),
-    onSuccess: (_d, v) => {
-      toast.success(`Saved “${v.key}”`);
-      qc.invalidateQueries({ queryKey: ["admin-data"] });
-    },
-    onError: () => toast.error("Could not save"),
-    onSettled: () => setSavingKey(null),
-  });
-
-  const saveAll = async (list: Setting[]) => {
-    const changed = list.filter((s) => drafts[s.key] !== undefined && drafts[s.key] !== s.value);
-    if (!changed.length) {
-      toast.info("No changes to save");
-      return;
-    }
-    for (const s of changed) await save({ data: { key: s.key, value: drafts[s.key]! } });
-    toast.success(`Saved ${changed.length} item(s)`);
-    qc.invalidateQueries({ queryKey: ["admin-data"] });
-  };
-
-  const currency = drafts["currency_symbol"] ?? settings.find((s) => s.key === "currency_symbol")?.value ?? "৳";
-  const match = (k: string) => k.toLowerCase().includes(search.trim().toLowerCase());
-  const rows = settings.filter((s) => s.key.startsWith(`${lang}.`) && match(s.key));
-  const globals = settings.filter((s) => !s.key.includes(".") && match(s.key));
-
-  const Row = ({ s, label }: { s: Setting; label: string }) => (
-    <div className="space-y-1 rounded-lg p-2 transition-colors duration-200 hover:bg-[#181227]">
-      <label className="text-xs text-[#9b93ad]">{label}</label>
-      <div className="flex gap-2">
-        <Input
-          value={drafts[s.key] ?? s.value}
-          onChange={(e) => setDrafts({ ...drafts, [s.key]: e.target.value })}
-          className="border-[#2a2438] bg-[#0d0a17] transition-colors focus-visible:border-[#ff3b9d]"
-        />
-        <Button
-          disabled={savingKey === s.key}
-          className="transition-transform active:scale-95"
-          onClick={() => mutation.mutate({ key: s.key, value: drafts[s.key] ?? s.value })}
-        >
-          {savingKey === s.key ? "…" : "Save"}
-        </Button>
-      </div>
-    </div>
-  );
-
-  return (
-    <div className="space-y-8 text-white animate-in fade-in duration-300">
-      <Input
-        placeholder="Search any setting…"
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-        className="border-[#2a2438] bg-[#0d0a17] text-white"
-      />
-
-      <section className="rounded-xl border border-[#2a2438] bg-[#120e1e] p-6">
-        <h2 className="mb-4 text-lg font-semibold">Currency</h2>
-        <div className="flex flex-wrap gap-2">
-          {CURRENCIES.map((c) => (
-            <button
-              key={c.symbol}
-              type="button"
-              onClick={() => {
-                setDrafts({ ...drafts, currency_symbol: c.symbol });
-                mutation.mutate({ key: "currency_symbol", value: c.symbol });
-              }}
-              className={`rounded-full px-4 py-1.5 text-sm transition-all duration-200 active:scale-95 ${currency === c.symbol ? "bg-[#ff3b9d] text-white" : "border border-[#2a2438] text-[#9b93ad] hover:text-white"}`}
-            >
-              {c.label}
-            </button>
-          ))}
-        </div>
-        <p className="mt-3 text-xs text-[#9b93ad]">All prices on the site use this symbol.</p>
-      </section>
-
-      <section className="rounded-xl border border-[#2a2438] bg-[#120e1e] p-6">
-        <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-lg font-semibold">Site identity & links</h2>
-          <Button variant="secondary" onClick={() => saveAll(globals)}>Save all</Button>
-        </div>
-        <div className="grid gap-3 sm:grid-cols-2">
-          {globals.map((s) => <Row key={s.key} s={s} label={s.key} />)}
-        </div>
-        <div className="mt-6 border-t border-[#2a2438] pt-4">
-          <h3 className="mb-2 text-sm font-semibold">Add a new setting</h3>
-          <div className="flex flex-col gap-2 sm:flex-row">
-            <Input placeholder="key (e.g. site_tagline)" value={newKey} onChange={(e) => setNewKey(e.target.value)} className="border-[#2a2438] bg-[#0d0a17]" />
-            <Input placeholder="value" value={newValue} onChange={(e) => setNewValue(e.target.value)} className="border-[#2a2438] bg-[#0d0a17]" />
-            <Button
-              onClick={() => {
-                if (!newKey.trim()) {
-                  toast.error("Key required");
-                  return;
-                }
-                mutation.mutate({ key: newKey.trim(), value: newValue });
-                setNewKey(""); setNewValue("");
-              }}
-            >
-              Add
-            </Button>
-          </div>
-        </div>
-      </section>
-
-      <section className="rounded-xl border border-[#2a2438] bg-[#120e1e] p-6">
-        <div className="mb-4 flex items-center justify-between gap-3">
-          <LangTabs value={lang} onChange={setLang} />
-          <Button variant="secondary" onClick={() => saveAll(rows)}>Save all</Button>
-        </div>
-        <div className="grid gap-3 sm:grid-cols-2">
-          {rows.map((s) => <Row key={s.key} s={s} label={s.key.slice(lang.length + 1)} />)}
-        </div>
-      </section>
-    </div>
-  );
-}
+function Toolbar({ title, children }: { title: string; children: ReactNode }) { return <div className="flex flex-wrap items-center justify-between gap-3"><h2 className="text-lg font-semibold">{title}</h2><div className="flex flex-wrap gap-2">{children}</div></div>; }
+function EntityCard({ title, subtitle, onEdit, onDelete }: { title: string; subtitle: string; onEdit: () => void; onDelete: () => void }) { return <article className={`${panelClass} flex items-center justify-between gap-3`}><div><p className="font-semibold">{title}</p><p className="mt-1 text-xs text-muted-foreground">{subtitle}</p></div><div className="flex gap-1"><Button variant="ghost" size="icon" aria-label="Edit" onClick={onEdit}><Pencil /></Button><ConfirmAction title="Delete this item?" description="This cannot be undone." onConfirm={onDelete}><Button variant="ghost" size="icon" aria-label="Delete"><Trash2 /></Button></ConfirmAction></div></article>; }
+function EntityDialog({ open,title,onClose,onSave,saving,children }: { open:boolean; title:string; onClose:()=>void; onSave:()=>void; saving:boolean; children:ReactNode }) { return <Dialog open={open} onOpenChange={v => { if(!v) onClose(); }}><DialogContent className="max-h-[90vh] overflow-y-auto border-border bg-surface text-foreground sm:max-w-xl"><DialogHeader><DialogTitle>{title}</DialogTitle></DialogHeader><div className="space-y-4">{children}<Button className="w-full" disabled={saving} onClick={onSave}>{saving ? "Saving…" : "Save changes"}</Button></div></DialogContent></Dialog>; }
+function Field({ label,value,onChange,textarea=false,type="text" }: { label:string; value:string; onChange:(v:string)=>void; textarea?:boolean; type?:string }) { return <div className="space-y-1.5"><Label>{label}</Label>{textarea ? <Textarea className={inputClass} value={value} onChange={e=>onChange(e.target.value)} /> : <Input className={inputClass} type={type} value={value} onChange={e=>onChange(e.target.value)} />}</div>; }
+function Toggle({ label,checked,onChange }: { label:string; checked:boolean; onChange:(v:boolean)=>void }) { return <div className="flex min-h-11 items-center justify-between rounded-md border border-border bg-background px-3"><Label>{label}</Label><Switch checked={checked} onCheckedChange={onChange}/></div>; }
+function Choice({ label,value,onChange,options }: { label:string; value:string; onChange:(v:string)=>void; options:string[] }) { return <div className="space-y-1.5"><Label>{label}</Label><Select value={value} onValueChange={onChange}><SelectTrigger className={inputClass}><SelectValue /></SelectTrigger><SelectContent>{options.map(o=><SelectItem key={o} value={o}>{o.replaceAll(",", " → ")}</SelectItem>)}</SelectContent></Select></div>; }
+function LangPicker({ value,onChange }: { value:LangCode; onChange:(v:LangCode)=>void }) { return <div className="flex flex-wrap gap-1.5">{LANGS.map(l=><Button key={l.code} type="button" size="sm" variant={value===l.code?"default":"outline"} onClick={()=>onChange(l.code)}>{l.label}</Button>)}</div>; }
+function Empty({ text }: { text:string }) { return <div className="rounded-md border border-dashed border-border p-8 text-center text-sm text-muted-foreground">{text}</div>; }

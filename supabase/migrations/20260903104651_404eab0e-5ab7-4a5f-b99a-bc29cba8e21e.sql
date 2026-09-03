@@ -1,0 +1,20 @@
+INSERT INTO public.settings (key, value) VALUES
+  ('theme_primary', '#ff3b9d'),
+  ('theme_background', '#080512'),
+  ('theme_surface', '#120e1e'),
+  ('theme_foreground', '#ffffff'),
+  ('theme_muted', '#a8a2b7'),
+  ('theme_border', '#312747'),
+  ('layout_sections', 'services,trial,packages,contact'),
+  ('show_services', 'true'),
+  ('show_trial', 'true'),
+  ('show_packages', 'true'),
+  ('show_contact', 'true'),
+  ('service_grid', '3'),
+  ('package_grid', '3'),
+  ('content_width', 'wide'),
+  ('spacing_density', 'comfortable'),
+  ('corner_style', 'soft'),
+  ('font_preset', 'regional'),
+  ('button_style', 'pill')
+ON CONFLICT (key) DO NOTHING;

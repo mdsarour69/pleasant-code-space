@@ -16,6 +16,17 @@
   --color-foreground: var(--foreground);
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
+  --color-surface: var(--surface);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-border: var(--border);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-input: var(--border);
+  --color-ring: var(--primary);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
 }
 
 :root {
@@ -24,6 +35,20 @@
   --foreground: #ffffff;
   --primary: #ff3b9d;
   --primary-foreground: #ffffff;
+  --surface: #120e1e;
+  --muted-foreground: #a8a2b7;
+  --border: #312747;
+  --secondary: #20192e;
+  --secondary-foreground: #ffffff;
+  --accent: #2b203d;
+  --accent-foreground: #ffffff;
+  --destructive: #d83a52;
+  --destructive-foreground: #ffffff;
+  --service-columns: 3;
+  --package-columns: 3;
+  --content-max: 1100px;
+  --section-gap: 1rem;
+  --card-radius: 18px;
 }
 
 @layer base {
@@ -40,8 +65,8 @@
   body {
     margin: 0;
     font-family: 'Hind Siliguri', sans-serif;
-    background: #080512;
-    color: #fff;
+    background: var(--background);
+    color: var(--foreground);
     line-height: 1.5;
     overflow-x: hidden;
     -webkit-font-smoothing: antialiased;
@@ -83,6 +108,19 @@
     font-family: 'Cairo', sans-serif;
   }
 }
+
+[data-content-width="compact"] { --content-max: 900px; }
+[data-content-width="wide"] { --content-max: 1100px; }
+[data-density="compact"] { --section-gap: 0.65rem; }
+[data-density="comfortable"] { --section-gap: 1rem; }
+[data-corners="square"] { --card-radius: 4px; }
+[data-corners="soft"] { --card-radius: 18px; }
+[data-button-style="square"] .gradient-btn,
+[data-button-style="square"] .dark-btn { border-radius: 6px; }
+
+.hero, .pricing { max-width: var(--content-max); }
+.service-grid, .package-grid { gap: var(--section-gap); }
+.service, .package, .trial-card, .contact { border-radius: var(--card-radius); }
 
 @layer utilities {
   .line-clamp-2 {

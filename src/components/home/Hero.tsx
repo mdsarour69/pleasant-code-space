@@ -2,7 +2,7 @@ import { useTranslationStore } from "@/lib/translations/store";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { getTranslations, getServices } from "@/lib/data.functions";
 
-export function Hero() {
+export function Hero({ showServices = true }: { showServices?: boolean }) {
   const { currentLang, _hasHydrated } = useTranslationStore();
   const activeLang = _hasHydrated ? currentLang : 'bn';
   
@@ -25,7 +25,7 @@ export function Hero() {
         {t['hero_title']}
       </h1>
       
-      <div id="services" className="service-grid grid grid-cols-1 md:grid-cols-3 gap-3.5 text-left">
+      {showServices ? <div id="services" className="service-grid grid grid-cols-1 md:grid-cols-[repeat(var(--service-columns),minmax(0,1fr))] gap-3.5 text-left">
         {services.map((s) => (
           <article 
             key={s.id} 
@@ -51,7 +51,7 @@ export function Hero() {
             </span>
           </article>
         ))}
-      </div>
+      </div> : null}
       
       <div className="auth-badge inline-block mt-9 mb-3 mx-auto border border-[#44364f] bg-[#181526] p-[6px_14px] rounded-[20px] text-[10px] tracking-[2px] text-[#aaa] uppercase">
         ● {t['authorized']}
