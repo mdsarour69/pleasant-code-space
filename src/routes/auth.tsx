@@ -29,8 +29,8 @@ function AuthPage() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      if (data.session) navigate({ to: "/admin", replace: true });
+    supabase.auth.getUser().then(({ data }) => {
+      if (data.user) navigate({ to: "/admin", replace: true });
     });
   }, [navigate]);
 
@@ -45,6 +45,8 @@ function AuthPage() {
         password,
       });
       if (error) throw error;
+      const { data: verified, error: verificationError } = await supabase.auth.getUser();
+      if (verificationError || !verified.user) throw new Error("Login session could not be verified");
       navigate({ to: "/admin", replace: true });
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Invalid password");
