@@ -370,7 +370,10 @@ function SettingsTab({ settings }: { settings: Setting[] }) {
             <Input placeholder="value" value={newValue} onChange={(e) => setNewValue(e.target.value)} className="border-[#2a2438] bg-[#0d0a17]" />
             <Button
               onClick={() => {
-                if (!newKey.trim()) return toast.error("Key required");
+                if (!newKey.trim()) {
+                  toast.error("Key required");
+                  return;
+                }
                 mutation.mutate({ key: newKey.trim(), value: newValue });
                 setNewKey(""); setNewValue("");
               }}
