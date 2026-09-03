@@ -292,7 +292,10 @@ function SettingsTab({ settings }: { settings: Setting[] }) {
 
   const saveAll = async (list: Setting[]) => {
     const changed = list.filter((s) => drafts[s.key] !== undefined && drafts[s.key] !== s.value);
-    if (!changed.length) return toast.info("No changes to save");
+    if (!changed.length) {
+      toast.info("No changes to save");
+      return;
+    }
     for (const s of changed) await save({ data: { key: s.key, value: drafts[s.key]! } });
     toast.success(`Saved ${changed.length} item(s)`);
     qc.invalidateQueries({ queryKey: ["admin-data"] });
@@ -367,7 +370,10 @@ function SettingsTab({ settings }: { settings: Setting[] }) {
             <Input placeholder="value" value={newValue} onChange={(e) => setNewValue(e.target.value)} className="border-[#2a2438] bg-[#0d0a17]" />
             <Button
               onClick={() => {
-                if (!newKey.trim()) return toast.error("Key required");
+                if (!newKey.trim()) {
+                  toast.error("Key required");
+                  return;
+                }
                 mutation.mutate({ key: newKey.trim(), value: newValue });
                 setNewKey(""); setNewValue("");
               }}
