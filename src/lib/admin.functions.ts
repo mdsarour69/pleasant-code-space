@@ -7,10 +7,12 @@ const idSchema = z.object({ id: z.string().uuid() });
 export const getMyRole = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { data, error } = await context.supabase.rpc("has_role", {
-      _user_id: context.userId,
-      _role: "admin",
-    });
+    const { data, error } = await context.supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", context.userId)
+      .eq("role", "admin")
+      .maybeSingle();
     if (error) return { isAdmin: false };
     return { isAdmin: Boolean(data) };
   });
@@ -187,6 +189,19 @@ export const saveSetting = createServerFn({ method: "POST" })
     const { error } = await context.supabase.from("settings").upsert(data, { onConflict: "key" });
     if (error) throw error;
     return { success: true };
+  });
+
+export const saveSettings = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data) =>
+    z.object({
+      settings: z.array(z.object({ key: z.string().min(1).max(120), value: z.string().max(2000) })).min(1).max(300),
+    }).parse(data),
+  )
+  .handler(async ({ data, context }) => {
+    const { error } = await context.supabase.from("settings").upsert(data.settings, { onConflict: "key" });
+    if (error) throw error;
+    return { success: true, count: data.settings.length };
   });
 
 const ADMIN_EMAIL = "admin@itfair.app";

@@ -38,7 +38,7 @@ export function PricingSection() {
           {t['pricing_desc']}
         </p>
         
-        <div className="package-grid grid grid-cols-1 md:grid-cols-3 gap-3.5 text-left mt-7">
+        <div className="package-grid grid grid-cols-1 md:grid-cols-[repeat(var(--package-columns),minmax(0,1fr))] gap-3.5 text-left mt-7">
           {packages.map((p) => {
             const save = p.old_price && p.old_price > 0 
               ? Math.max(0, Math.round((1 - p.price / p.old_price) * 100)) 
