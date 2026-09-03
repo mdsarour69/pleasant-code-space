@@ -59,15 +59,22 @@ function AdminPage() {
 
   useEffect(() => {
     let active = true;
-    void supabase.auth.getSession().then(({ data }) => {
+    void supabase.auth.getUser().then(({ data, error }) => {
       if (!active) return;
-      setHasSession(Boolean(data.session));
+      setHasSession(!error && Boolean(data.user));
       setSessionReady(true);
     });
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
-      setHasSession(Boolean(session));
-      setSessionReady(true);
-      if (!session) void navigate({ to: "/auth", replace: true });
+    const { data: listener } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === "SIGNED_OUT") {
+        setHasSession(false);
+        setSessionReady(true);
+        void navigate({ to: "/auth", replace: true });
+        return;
+      }
+      if (event === "SIGNED_IN" || event === "USER_UPDATED") {
+        setHasSession(Boolean(session));
+        setSessionReady(true);
+      }
     });
     return () => { active = false; listener.subscription.unsubscribe(); };
   }, [navigate]);
