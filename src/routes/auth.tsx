@@ -29,8 +29,8 @@ function AuthPage() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
-      if (data.user) navigate({ to: "/admin", replace: true });
+    supabase.auth.getSession().then(({ data }) => {
+      if (data.session) navigate({ to: "/admin", replace: true });
     });
   }, [navigate]);
 
@@ -40,13 +40,19 @@ function AuthPage() {
     try {
       const res = await loginFn({ data: { password } });
       if (!res.success || !res.email) throw new Error("Invalid password");
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data: signIn, error } = await supabase.auth.signInWithPassword({
         email: res.email,
         password,
       });
       if (error) throw error;
-      const { data: verified, error: verificationError } = await supabase.auth.getUser();
-      if (verificationError || !verified.user) throw new Error("Login session could not be verified");
+      if (!signIn.session) throw new Error("Login session could not be created");
+      // Wait until the session is actually persisted in storage before navigating,
+      // otherwise the protected route can redirect back to this page.
+      for (let i = 0; i < 20; i++) {
+        const { data: check } = await supabase.auth.getSession();
+        if (check.session) break;
+        await new Promise((r) => setTimeout(r, 100));
+      }
       navigate({ to: "/admin", replace: true });
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Invalid password");

@@ -4,10 +4,13 @@ import { supabase } from "@/integrations/supabase/client";
 export const Route = createFileRoute("/_authenticated")({
   ssr: false,
   beforeLoad: async () => {
-    const { data, error } = await supabase.auth.getUser();
-    if (error || !data.user) {
-      throw redirect({ to: "/auth" });
+    // Retry briefly: right after login the session may still be settling in storage.
+    for (let i = 0; i < 10; i++) {
+      const { data } = await supabase.auth.getSession();
+      if (data.session) return;
+      await new Promise((r) => setTimeout(r, 100));
     }
+    throw redirect({ to: "/auth" });
   },
   component: () => <Outlet />,
 });
