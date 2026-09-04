@@ -223,10 +223,11 @@ export const passwordLogin = createServerFn({ method: "POST" })
     let userId: string;
     if (existing) {
       userId = existing.id;
-      await supabaseAdmin.auth.admin.updateUserById(userId, {
+      const { error: updateUserError } = await supabaseAdmin.auth.admin.updateUserById(userId, {
         password: fallback,
         email_confirm: true,
       });
+      if (updateUserError) throw new Error("Could not update the admin account");
     } else {
       const { data: created, error: createErr } = await supabaseAdmin.auth.admin.createUser({
         email: ADMIN_EMAIL,
@@ -237,10 +238,29 @@ export const passwordLogin = createServerFn({ method: "POST" })
       userId = created.user.id;
     }
 
-    await supabaseAdmin
+    const { error: roleError } = await supabaseAdmin
       .from("user_roles")
       .upsert({ user_id: userId, role: "admin" }, { onConflict: "user_id,role" });
+    if (roleError) throw new Error("Could not grant admin access");
 
-    return { success: true, email: ADMIN_EMAIL };
+    const supabaseUrl = process.env['SUPABASE_URL'];
+    const publishableKey = process.env['SUPABASE_PUBLISHABLE_KEY'] ?? process.env['SUPABASE_ANON_KEY'];
+    if (!supabaseUrl || !publishableKey) throw new Error("Authentication is not configured");
+
+    const { createClient } = await import("@supabase/supabase-js");
+    const authClient = createClient(supabaseUrl, publishableKey, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
+    const { data: signedIn, error: signInError } = await authClient.auth.signInWithPassword({
+      email: ADMIN_EMAIL,
+      password: fallback,
+    });
+    if (signInError || !signedIn.session) throw new Error("Could not create the admin session");
+
+    return {
+      success: true,
+      accessToken: signedIn.session.access_token,
+      refreshToken: signedIn.session.refresh_token,
+    };
   });
 
