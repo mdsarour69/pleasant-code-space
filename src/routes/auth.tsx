@@ -29,8 +29,8 @@ function AuthPage() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      if (data.session) navigate({ to: "/admin", replace: true });
+    supabase.auth.getUser().then(({ data }) => {
+      if (data.user) navigate({ to: "/admin", replace: true });
     });
   }, [navigate]);
 
@@ -39,20 +39,15 @@ function AuthPage() {
     setLoading(true);
     try {
       const res = await loginFn({ data: { password } });
-      if (!res.success || !res.email) throw new Error("Invalid password");
-      const { data: signIn, error } = await supabase.auth.signInWithPassword({
-        email: res.email,
-        password,
+      if (!res.success || !res.accessToken || !res.refreshToken) throw new Error("Invalid password");
+      const { data: restored, error } = await supabase.auth.setSession({
+        access_token: res.accessToken,
+        refresh_token: res.refreshToken,
       });
       if (error) throw error;
-      if (!signIn.session) throw new Error("Login session could not be created");
-      // Wait until the session is actually persisted in storage before navigating,
-      // otherwise the protected route can redirect back to this page.
-      for (let i = 0; i < 20; i++) {
-        const { data: check } = await supabase.auth.getSession();
-        if (check.session) break;
-        await new Promise((r) => setTimeout(r, 100));
-      }
+      if (!restored.session) throw new Error("Login session could not be created");
+      const { data: verified, error: verifyError } = await supabase.auth.getUser();
+      if (verifyError || !verified.user) throw new Error("Login session could not be verified");
       navigate({ to: "/admin", replace: true });
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Invalid password");

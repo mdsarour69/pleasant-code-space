@@ -4,3 +4,4 @@
 - [x] Add safe site structure controls
 - [x] Add global theme controls and public-site application
 - [x] Verify automatic build and runtime logs
+- [ ] Fix password login redirect/session persistence on custom domains
