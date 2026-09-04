@@ -29,9 +29,11 @@ function AuthPage() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
-      if (data.user) navigate({ to: "/admin", replace: true });
+    let active = true;
+    void supabase.auth.getUser().then(({ data }) => {
+      if (active && data.user) void navigate({ to: "/admin", replace: true });
     });
+    return () => { active = false; };
   }, [navigate]);
 
   async function handleSubmit(e: React.FormEvent) {
@@ -48,7 +50,7 @@ function AuthPage() {
       if (!restored.session) throw new Error("Login session could not be created");
       const { data: verified, error: verifyError } = await supabase.auth.getUser();
       if (verifyError || !verified.user) throw new Error("Login session could not be verified");
-      navigate({ to: "/admin", replace: true });
+      await navigate({ to: "/admin", replace: true });
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Invalid password");
     } finally {
