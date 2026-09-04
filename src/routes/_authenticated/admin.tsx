@@ -59,9 +59,9 @@ function AdminPage() {
 
   useEffect(() => {
     let active = true;
-    void supabase.auth.getUser().then(({ data, error }) => {
+    void supabase.auth.getSession().then(({ data }) => {
       if (!active) return;
-      setHasSession(!error && Boolean(data.user));
+      setHasSession(Boolean(data.session));
       setSessionReady(true);
     });
     const { data: listener } = supabase.auth.onAuthStateChange((event, session) => {
@@ -71,7 +71,7 @@ function AdminPage() {
         void navigate({ to: "/auth", replace: true });
         return;
       }
-      if (event === "SIGNED_IN" || event === "USER_UPDATED") {
+      if (event === "SIGNED_IN" || event === "USER_UPDATED" || event === "TOKEN_REFRESHED" || event === "INITIAL_SESSION") {
         setHasSession(Boolean(session));
         setSessionReady(true);
       }
