@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { toast } from "sonner";
-import { BarChart3, Boxes, FileText, LayoutTemplate, LogOut, Package, Palette, Pencil, Plus, RefreshCw, Search, ShoppingCart, Trash2 } from "lucide-react";
+import { BarChart3, Boxes, Download, FileText, FolderUp, LayoutTemplate, LogOut, Package, Palette, Pencil, Plus, RefreshCw, Search, ShoppingCart, Sparkles, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
 import {
