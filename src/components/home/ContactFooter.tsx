@@ -1,6 +1,7 @@
 import { useTranslationStore } from "@/lib/translations/store";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { getTranslations } from "@/lib/data.functions";
+import { AdminAccess } from "@/components/layout/AdminAccess";
 
 export function ContactSection() {
   const { currentLang, _hasHydrated } = useTranslationStore();
@@ -36,7 +37,8 @@ export function Footer() {
 
   return (
     <footer className="text-center text-[#777] p-[30px] border-t border-[#312747]/30">
-      {t['footer']}
+      <div>{t['footer']}</div>
+      <AdminAccess />
     </footer>
   );
 }
