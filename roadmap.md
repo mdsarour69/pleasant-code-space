@@ -5,3 +5,6 @@
 - [x] Add global theme controls and public-site application
 - [x] Verify automatic build and runtime logs
 - [x] Fix password login redirect/session persistence on custom domains
+- [x] Persistent session wait on custom domains
+- [x] Admin file library (backend storage)
+- [x] Branding + page template settings

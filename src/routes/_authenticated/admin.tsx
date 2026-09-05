@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { toast } from "sonner";
-import { BarChart3, Boxes, FileText, LayoutTemplate, LogOut, Package, Palette, Pencil, Plus, RefreshCw, Search, ShoppingCart, Trash2 } from "lucide-react";
+import { BarChart3, Boxes, Download, FileText, FolderUp, LayoutTemplate, LogOut, Package, Palette, Pencil, Plus, RefreshCw, Search, ShoppingCart, Sparkles, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
 import {
@@ -101,15 +101,18 @@ function AdminPage() {
           <TabsList className="mb-5 flex h-auto w-full justify-start gap-1 overflow-x-auto bg-surface p-1.5">
             <AdminTab value="dashboard" icon={<BarChart3 />}>Dashboard</AdminTab><AdminTab value="orders" icon={<ShoppingCart />}>Orders</AdminTab>
             <AdminTab value="services" icon={<Boxes />}>Services</AdminTab><AdminTab value="packages" icon={<Package />}>Packages</AdminTab>
-            <AdminTab value="content" icon={<FileText />}>Content</AdminTab><AdminTab value="structure" icon={<LayoutTemplate />}>Structure</AdminTab><AdminTab value="theme" icon={<Palette />}>Theme</AdminTab>
+            <AdminTab value="content" icon={<FileText />}>Content</AdminTab><AdminTab value="branding" icon={<Sparkles />}>Branding</AdminTab><AdminTab value="files" icon={<FolderUp />}>Files</AdminTab><AdminTab value="structure" icon={<LayoutTemplate />}>Structure</AdminTab><AdminTab value="theme" icon={<Palette />}>Theme</AdminTab>
           </TabsList>
           <TabsContent value="dashboard"><Dashboard data={data} /></TabsContent>
           <TabsContent value="orders"><OrdersTab orders={data.orders} /></TabsContent>
           <TabsContent value="services"><ServicesTab services={data.services} /></TabsContent>
           <TabsContent value="packages"><PackagesTab packages={data.packages} /></TabsContent>
           <TabsContent value="content"><ContentTab settings={data.settings} /></TabsContent>
+          <TabsContent value="branding"><BrandingTab settings={data.settings} /></TabsContent>
+          <TabsContent value="files"><FilesTab /></TabsContent>
           <TabsContent value="structure"><StructureTab settings={data.settings} /></TabsContent>
           <TabsContent value="theme"><ThemeTab settings={data.settings} /></TabsContent>
+
         </Tabs>
       </div>
     </main>
@@ -183,3 +186,134 @@ function Toggle({ label,checked,onChange }: { label:string; checked:boolean; onC
 function Choice({ label,value,onChange,options }: { label:string; value:string; onChange:(v:string)=>void; options:string[] }) { return <div className="space-y-1.5"><Label>{label}</Label><Select value={value} onValueChange={onChange}><SelectTrigger className={inputClass}><SelectValue /></SelectTrigger><SelectContent>{options.map(o=><SelectItem key={o} value={o}>{o.replaceAll(",", " → ")}</SelectItem>)}</SelectContent></Select></div>; }
 function LangPicker({ value,onChange }: { value:LangCode; onChange:(v:LangCode)=>void }) { return <div className="flex flex-wrap gap-1.5">{LANGS.map(l=><Button key={l.code} type="button" size="sm" variant={value===l.code?"default":"outline"} onClick={()=>onChange(l.code)}>{l.label}</Button>)}</div>; }
 function Empty({ text }: { text:string }) { return <div className="rounded-md border border-dashed border-border p-8 text-center text-sm text-muted-foreground">{text}</div>; }
+
+const BRAND_FIELDS = [
+  { key: "site_name", label: "Website name" },
+  { key: "site_description", label: "Website description" },
+  { key: "site_logo_url", label: "Logo URL" },
+  { key: "favicon_url", label: "Favicon URL" },
+  { key: "currency_symbol", label: "Currency symbol" },
+];
+const BRAND_DEFAULTS: Record<string, string> = { site_name: "ITFair", site_description: "", site_logo_url: "", favicon_url: "", currency_symbol: "$" };
+const TEMPLATE_PRESETS: { name: string; values: Record<string, string> }[] = [
+  { name: "Classic", values: { layout_sections: "services,trial,packages,contact", content_width: "wide", spacing_density: "comfortable", corner_style: "soft", button_style: "pill" } },
+  { name: "Compact", values: { layout_sections: "packages,services,trial,contact", content_width: "narrow", spacing_density: "compact", corner_style: "sharp", button_style: "square" } },
+  { name: "Showcase", values: { layout_sections: "trial,packages,services,contact", content_width: "wide", spacing_density: "spacious", corner_style: "round", button_style: "pill" } },
+];
+
+function BrandingTab({ settings }: { settings: Setting[] }) {
+  const qc = useQueryClient();
+  const saveFn = useServerFn(saveSettings);
+  const current = useMemo(() => Object.fromEntries(settings.map(s => [s.key, s.value])), [settings]);
+  const initial = Object.fromEntries(BRAND_FIELDS.map(f => [f.key, current[f.key] ?? BRAND_DEFAULTS[f.key] ?? ""]));
+  const [draft, setDraft] = useState<Record<string, string>>(initial);
+  const applyTemplate = useMutation({
+    mutationFn: (values: Record<string, string>) => saveFn({ data: { settings: Object.entries(values).map(([key, value]) => ({ key, value })) } }),
+    onSuccess: () => { toast.success("Page template applied"); void qc.invalidateQueries({ queryKey: ["admin-data"] }); void qc.invalidateQueries({ queryKey: ["translations"] }); },
+    onError: e => toast.error(errorMessage(e)),
+  });
+  return (
+    <div className="space-y-4">
+      <SettingsBatch title="Brand identity" values={draft} setValues={setDraft} reset={initial}>
+        <p className="text-sm text-muted-foreground">Saved in the database, so branding survives a domain change.</p>
+        <div className="grid gap-3 sm:grid-cols-2">
+          {BRAND_FIELDS.map(f => <Field key={f.key} label={f.label} value={draft[f.key] ?? ""} onChange={v => setDraft({ ...draft, [f.key]: v })} />)}
+        </div>
+        {draft["site_logo_url"] ? <img src={draft["site_logo_url"]} alt="Website logo preview" className="h-12 w-auto rounded" loading="lazy" /> : null}
+      </SettingsBatch>
+      <section className={panelClass}>
+        <h2 className="text-lg font-semibold">Page templates</h2>
+        <p className="mt-1 text-sm text-muted-foreground">One click switches the whole page layout preset.</p>
+        <div className="mt-4 grid gap-3 sm:grid-cols-3">
+          {TEMPLATE_PRESETS.map(preset => (
+            <div key={preset.name} className="rounded-md border border-border p-4">
+              <p className="font-semibold">{preset.name}</p>
+              <p className="mt-1 text-xs text-muted-foreground">{preset.values["layout_sections"]?.replaceAll(",", " → ")}</p>
+              <Button className="mt-3 w-full" disabled={applyTemplate.isPending} onClick={() => applyTemplate.mutate(preset.values)}>Apply</Button>
+            </div>
+          ))}
+        </div>
+      </section>
+    </div>
+  );
+}
+
+const FILES_BUCKET = "admin-files";
+function FilesTab() {
+  const qc = useQueryClient();
+  const [uploading, setUploading] = useState(false);
+  const filesQuery = useQuery({
+    queryKey: ["admin-files"],
+    queryFn: async () => {
+      const { data, error } = await supabase.storage.from(FILES_BUCKET).list("", { limit: 200, sortBy: { column: "created_at", order: "desc" } });
+      if (error) throw error;
+      return (data ?? []).filter(item => item.name !== ".emptyFolderPlaceholder");
+    },
+  });
+  const refresh = () => void qc.invalidateQueries({ queryKey: ["admin-files"] });
+
+  async function handleUpload(fileList: FileList | null) {
+    if (!fileList?.length) return;
+    setUploading(true);
+    try {
+      for (const file of Array.from(fileList)) {
+        const safeName = `${Date.now()}-${file.name.replace(/[^\w.-]+/g, "_")}`;
+        const { error } = await supabase.storage.from(FILES_BUCKET).upload(safeName, file, { upsert: false });
+        if (error) throw error;
+      }
+      toast.success("Upload complete");
+      refresh();
+    } catch (err) {
+      toast.error(errorMessage(err));
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  async function openFile(name: string) {
+    const { data, error } = await supabase.storage.from(FILES_BUCKET).createSignedUrl(name, 60 * 60);
+    if (error || !data?.signedUrl) { toast.error(errorMessage(error)); return; }
+    window.open(data.signedUrl, "_blank", "noopener");
+  }
+
+  async function removeFile(name: string) {
+    const { error } = await supabase.storage.from(FILES_BUCKET).remove([name]);
+    if (error) { toast.error(errorMessage(error)); return; }
+    toast.success("File deleted");
+    refresh();
+  }
+
+  return (
+    <section className={panelClass}>
+      <Toolbar title="File library">
+        <Button variant="outline" onClick={refresh}><RefreshCw />Refresh</Button>
+        <Button asChild disabled={uploading}>
+          <label className="cursor-pointer">
+            <FolderUp />{uploading ? "Uploading…" : "Upload files"}
+            <input type="file" multiple className="hidden" onChange={e => { void handleUpload(e.target.files); e.target.value = ""; }} />
+          </label>
+        </Button>
+      </Toolbar>
+      <p className="mt-2 text-sm text-muted-foreground">Files are stored in the backend, so they stay available on any domain.</p>
+      <div className="mt-4 space-y-2">
+        {filesQuery.isPending && <Empty text="Loading files…" />}
+        {filesQuery.isError && <Empty text={errorMessage(filesQuery.error)} />}
+        {filesQuery.data?.length === 0 && <Empty text="No files uploaded yet." />}
+        {filesQuery.data?.map(file => (
+          <article key={file.name} className="flex items-center justify-between gap-3 rounded-md border border-border p-3">
+            <div className="min-w-0">
+              <p className="truncate font-medium">{file.name}</p>
+              <p className="text-xs text-muted-foreground">{Math.max(1, Math.round(((file.metadata?.["size"] as number | undefined) ?? 0) / 1024))} KB</p>
+            </div>
+            <div className="flex shrink-0 gap-1">
+              <Button variant="ghost" size="icon" aria-label="Open file" onClick={() => void openFile(file.name)}><Download /></Button>
+              <ConfirmAction title="Delete this file?" description="This cannot be undone." onConfirm={() => void removeFile(file.name)}>
+                <Button variant="ghost" size="icon" aria-label="Delete file"><Trash2 /></Button>
+              </ConfirmAction>
+            </div>
+          </article>
+        ))}
+      </div>
+    </section>
+  );
+}

@@ -1,0 +1,4 @@
+CREATE POLICY "Admins read admin files" ON storage.objects FOR SELECT TO authenticated USING (bucket_id = 'admin-files' AND private.has_role(auth.uid(), 'admin'::app_role));
+CREATE POLICY "Admins upload admin files" ON storage.objects FOR INSERT TO authenticated WITH CHECK (bucket_id = 'admin-files' AND private.has_role(auth.uid(), 'admin'::app_role));
+CREATE POLICY "Admins update admin files" ON storage.objects FOR UPDATE TO authenticated USING (bucket_id = 'admin-files' AND private.has_role(auth.uid(), 'admin'::app_role)) WITH CHECK (bucket_id = 'admin-files' AND private.has_role(auth.uid(), 'admin'::app_role));
+CREATE POLICY "Admins delete admin files" ON storage.objects FOR DELETE TO authenticated USING (bucket_id = 'admin-files' AND private.has_role(auth.uid(), 'admin'::app_role));
