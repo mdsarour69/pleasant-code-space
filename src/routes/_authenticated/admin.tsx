@@ -101,15 +101,18 @@ function AdminPage() {
           <TabsList className="mb-5 flex h-auto w-full justify-start gap-1 overflow-x-auto bg-surface p-1.5">
             <AdminTab value="dashboard" icon={<BarChart3 />}>Dashboard</AdminTab><AdminTab value="orders" icon={<ShoppingCart />}>Orders</AdminTab>
             <AdminTab value="services" icon={<Boxes />}>Services</AdminTab><AdminTab value="packages" icon={<Package />}>Packages</AdminTab>
-            <AdminTab value="content" icon={<FileText />}>Content</AdminTab><AdminTab value="structure" icon={<LayoutTemplate />}>Structure</AdminTab><AdminTab value="theme" icon={<Palette />}>Theme</AdminTab>
+            <AdminTab value="content" icon={<FileText />}>Content</AdminTab><AdminTab value="branding" icon={<Sparkles />}>Branding</AdminTab><AdminTab value="files" icon={<FolderUp />}>Files</AdminTab><AdminTab value="structure" icon={<LayoutTemplate />}>Structure</AdminTab><AdminTab value="theme" icon={<Palette />}>Theme</AdminTab>
           </TabsList>
           <TabsContent value="dashboard"><Dashboard data={data} /></TabsContent>
           <TabsContent value="orders"><OrdersTab orders={data.orders} /></TabsContent>
           <TabsContent value="services"><ServicesTab services={data.services} /></TabsContent>
           <TabsContent value="packages"><PackagesTab packages={data.packages} /></TabsContent>
           <TabsContent value="content"><ContentTab settings={data.settings} /></TabsContent>
+          <TabsContent value="branding"><BrandingTab settings={data.settings} /></TabsContent>
+          <TabsContent value="files"><FilesTab /></TabsContent>
           <TabsContent value="structure"><StructureTab settings={data.settings} /></TabsContent>
           <TabsContent value="theme"><ThemeTab settings={data.settings} /></TabsContent>
+
         </Tabs>
       </div>
     </main>
