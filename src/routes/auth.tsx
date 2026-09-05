@@ -48,8 +48,15 @@ function AuthPage() {
       });
       if (error) throw error;
       if (!restored.session) throw new Error("Login session could not be created");
-      const { data: verified, error: verifyError } = await supabase.auth.getUser();
-      if (verifyError || !verified.user) throw new Error("Login session could not be verified");
+      // Wait until the session is actually persisted in this browser/domain
+      // before navigating, otherwise the admin guard bounces back here.
+      let persisted = null;
+      for (let attempt = 0; attempt < 12 && !persisted; attempt += 1) {
+        const { data: current } = await supabase.auth.getSession();
+        persisted = current.session;
+        if (!persisted) await new Promise((r) => setTimeout(r, 150));
+      }
+      if (!persisted) throw new Error("Login session could not be saved in this browser");
       await navigate({ to: "/admin", replace: true });
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Invalid password");
@@ -57,6 +64,7 @@ function AuthPage() {
       setLoading(false);
     }
   }
+
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-[#080512] px-4">
