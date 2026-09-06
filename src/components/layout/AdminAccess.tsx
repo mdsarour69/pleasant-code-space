@@ -1,9 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
-import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { passwordLogin } from "@/lib/admin.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -18,7 +16,6 @@ import {
 
 export function AdminAccess() {
   const navigate = useNavigate();
-  const loginFn = useServerFn(passwordLogin);
   const [open, setOpen] = useState(false);
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -27,15 +24,11 @@ export function AdminAccess() {
     e.preventDefault();
     setLoading(true);
     try {
-      const res = await loginFn({ data: { password } });
-      if (!res.success || !res.accessToken || !res.refreshToken) {
-        throw new Error("Invalid password");
-      }
-      const { data: restored, error } = await supabase.auth.setSession({
-        access_token: res.accessToken,
-        refresh_token: res.refreshToken,
+      const { data: restored, error } = await supabase.auth.signInWithPassword({
+        email: "admin@itfair.app",
+        password,
       });
-      if (error) throw error;
+      if (error) throw new Error("Invalid password");
       if (!restored.session) throw new Error("Login session could not be created");
       let persisted = null;
       for (let attempt = 0; attempt < 12 && !persisted; attempt += 1) {
