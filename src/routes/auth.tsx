@@ -5,8 +5,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { useServerFn } from "@tanstack/react-start";
-import { passwordLogin } from "@/lib/admin.functions";
 
 export const Route = createFileRoute("/auth")({
   ssr: false,
@@ -24,7 +22,6 @@ export const Route = createFileRoute("/auth")({
 
 function AuthPage() {
   const navigate = useNavigate();
-  const loginFn = useServerFn(passwordLogin);
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -40,13 +37,11 @@ function AuthPage() {
     e.preventDefault();
     setLoading(true);
     try {
-      const res = await loginFn({ data: { password } });
-      if (!res.success || !res.accessToken || !res.refreshToken) throw new Error("Invalid password");
-      const { data: restored, error } = await supabase.auth.setSession({
-        access_token: res.accessToken,
-        refresh_token: res.refreshToken,
+      const { data: restored, error } = await supabase.auth.signInWithPassword({
+        email: "admin@itfair.app",
+        password,
       });
-      if (error) throw error;
+      if (error) throw new Error("Invalid password");
       if (!restored.session) throw new Error("Login session could not be created");
       // Wait until the session is actually persisted in this browser/domain
       // before navigating, otherwise the admin guard bounces back here.

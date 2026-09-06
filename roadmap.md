@@ -8,3 +8,4 @@
 - [x] Persistent session wait on custom domains
 - [x] Admin file library (backend storage)
 - [x] Branding + page template settings
+- [x] Make password login work without the app server on external domains
